@@ -77,6 +77,9 @@ class Client:
     def send_string(self, str ,msgsize, dest, tags):
         self.send_string(str, msgsize, dest, tags)
 
+    def stop(self):
+        pass
+
 class MSG:
     def __init__(self, tag, pack):
         self.tag = tag

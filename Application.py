@@ -13,6 +13,15 @@ class IApplication:
 
         self._task_index = 0
 
+        self.app_init_boot=[]
+        self.app_init_data=[]
+
+    def set_init_boot(self, init_boot):
+        self.app_init_boot.append(init_boot)
+
+    def set_init_data(self, init_data):
+        self.app_init_data.append(init_data)
+
     def set_boot(self, boot_list):
         self.app_boot.append(boot_list)
 
@@ -31,7 +40,20 @@ class IApplication:
     def task_done(self, tid):
         raise NotImplementedError
 
+    def task_update(self,tid,task_status):
+        """
+        update the status of task for task monitor
+        :param tid:
+        :param task_status:
+        :return:
+        """
+        pass
+
 class UnitTestApp(IApplication):
+
+    def __init__(self):
+        IApplication.__init__(self)
+
 
     def split_data(self):
         if not os.environ.has_key('JUNOTESTROOT'):

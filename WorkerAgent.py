@@ -169,46 +169,49 @@ class WorkerAgent(BaseThread):
             self.task_sync_lock.acquire()
             if self.task_sync_flag:
                 self.task_sync_flag = False
-                self.task_sync_lock.release()
+
                 while not self.task_completed_queue.empty():
                     tmp_task= self.task_completed_queue.get()
                     send_str = self.MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start, time_fin=tmp_task.time_finish, status=tmp_task.task_status)
                     self.client.send_string(send_str, len(send_str), 0, Tags.TASK_FIN)
-            else:
-                self.task_sync_lock.release()
+            self.task_sync_lock.release()
             # handle msg from master
             if not self.recv_buffer.empty():
                 msg_t = self.recv_buffer.get()
-                '''
+
+                # recv register ack then ask for app_ini
+                if msg_t.tag == Tags.MPI_REGISTY_ACK:
+                    self.wid = msg_t.ibuf
+                    log.info('Receive register ack: wid=%d',self.wid)
+                    self.client.send_int(self.wid,1,self.uuid,Tags.APP_INI_ASK)
+                # recv app_ini, do worker initialization
                 if msg_t.tag == Tags.APP_INI:
                     #TODO consider if not a complete command
                     comm_dict = json.loads(msg_t.sbuf)
                     self.appid = comm_dict['appid']
                     self.app_ini_task_lock.acquire()
-                    self.app_ini_task = Task4Worker(0, comm_dict['app_init_boot'], comm_dict['app_init_data'], comm_dict['res_dir'])
+                    self.app_ini_task = SampleTask(0, comm_dict['app_init_boot'], comm_dict['app_init_data'], comm_dict['res_dir'])
                     self.app_ini_task_lock.release()
-                    #self.task_queue.put_nowait(task)
                     #wake worker up and do app initialize
                     self.cond.acquire()
                     self.cond.notify()
                     self.cond.release()
-                '''
 
                 if msg_t.tag == Tags.TASK_ADD:
                     if self.task_queue.qsize() == self.capacity:
-                        #TODO add error handler: out of queue bound
-                        raise
-                    comm_dict = json.loads(msg_t.sbuf)
-                    task = Task4Worker(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
-                    task.task_status = TaskStatus.SCHEDULED_HALT
-                    self.task_queue.put_nowait(task.tid)
-                    #self.task_list[task.tid] = task
-                    if self.worker.status == WorkerStatus.IDLE:
-                        self.cond.acquire()
-                        self.cond.notify()
-                        self.cond.release()
-
-
+                        # add error handler: out of queue bound
+                        log.error('error to add tasks: out of capacity')
+                        # TODO add some feedback to Master?
+                    else:
+                        comm_dict = json.loads(msg_t.sbuf)
+                        task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
+                        task.task_status = TaskStatus.SCHEDULED_HALT
+                        self.task_queue.put_nowait(task.tid)
+                        #self.task_list[task.tid] = task
+                        if self.worker.status == WorkerStatus.IDLE:
+                            self.cond.acquire()
+                            self.cond.notify()
+                            self.cond.release()
 
                 elif msg_t.tag == Tags.TASK_REMOVE:
                     pass
@@ -261,11 +264,11 @@ class WorkerAgent(BaseThread):
         #client stop
 
     def task_done(self, task):
-        self.task_completed_queue.put_nowait(task)
         #self.task_list[task.tid] = task
         try:
             self.task_sync_lock.acquire()
             self.task_sync_flag = True
+            self.task_completed_queue.put_nowait(task)
         finally:
             self.task_sync_lock.release()
 
@@ -427,3 +430,4 @@ class Worker(BaseThread):
         return self.status
 
     def set_status(self, status):
+        self.status = status

@@ -96,10 +96,13 @@ class SimpleScheduler(IScheduler):
         return not self.task_todo_Queue.empty()
 
     def worker_initialize(self, w_entry):
-        if not self.current_app.init_boot
+        if self.current_app.init_boot:
             send_str = MSG_wrapper(app_ini_boot=self.current_app.init_boot, app_ini_data=self.current_app.init_data,
                                res_dir='/home/cc/zhaobq')
             self.master.server.send_str(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
+        else:           #if no init boot, send empty string
+            send_str = MSG_wrapper(app_ini_boot="", app_ini_data="",res_dir="")
+            self.master.server.send_string(send_str,len(send_str), w_entry.w_uuid, Tags.APP_INI)
 
     def task_failed(self,task):
         if self.policy.REDO_IF_FAILED_TASKS:
@@ -116,8 +119,15 @@ class SimpleScheduler(IScheduler):
             self.task_todo_Queue.put(t)
 
     def run(self):
+        """
+        1. split application into tasks
+        2. initialize worker
+        3. assign tasks
+        :return:
+        """
         self.processing = True
-        # init worker
+        #TODO split application
+        # initialize worker
         try:
             self.master.worker_registry.lock.require()
             for w in self.master.worker_registry.get_worker_list():
@@ -130,12 +140,9 @@ class SimpleScheduler(IScheduler):
         task_num = 0
 
         while not self.get_stop_flag():
-
+        #3. assign tasks
             #TODO rewrite schedule tasks
             if self.has_more_work():
-                for wentry in self.master.worker_registry.get_aviliable_worker():
-
-
                 # schedule tasks to initialized workers
                 for w, r in self.master.worker_registry.get_aviliable_worker(True):
                     tasks = []

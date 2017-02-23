@@ -18,6 +18,9 @@ class IApplicationMgr:
         for task in app.task_list.values():
             self.task_queue.put_nowait(task)
 
+    def current_app(self):
+        return self.current_app_id,self.applist[self.current_app_id]
+
     def initialize(self):
         pass
 

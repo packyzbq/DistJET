@@ -11,8 +11,8 @@ class TaskStatus:
     COMPLETED = 3
     FAILED = 4
     LOST = 5
-    UNSCHEDULED = 6
-    SCHEDULED_HALT = 7
+    UNSCHEDULED = 6             # to be scheduled
+    SCHEDULED_HALT = 7          # to be performed
 
 class Task:
     """
@@ -69,3 +69,14 @@ class TaskDetail:
         self.assigned_wid = wid
         self.time_scheduled = time.time()
 
+
+class SampleTask:
+    """
+    used for workeragent <-> worker
+    """
+    def __init__(self, tid, boot, data, resdir):
+        self.tid = tid
+        self.task_boot=boot
+        self.task_data=data
+        self.res_dir=resdir
+        self.task_status = TaskStatus.NEW
