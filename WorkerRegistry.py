@@ -37,8 +37,8 @@ class WorkerEntry:
         self.initialized = False
 
         #self.processing_task = None
-        self.current_app = None
-        self.scheduled_tasks = {}
+        #self.current_app = None
+        #self.scheduled_tasks = {}
 
         self.alive = True
         self.alive_lock = threading.RLock()
@@ -47,7 +47,7 @@ class WorkerEntry:
         self.fin_output=None
 
     def capacity(self):
-        return self.max_capacity-len(self.scheduled_tasks)
+        return self.max_capacity-self.assigned
 
     def lost(self):
         return time.time()-self.last_contact_time > LOST_WORKER_TIMEOUT
@@ -57,6 +57,10 @@ class WorkerEntry:
 
     def idle_timeout(self):
         return self.idle_time and IDLE_WORKER_TIMEOUT and time.time()-self.idle_time > IDLE_WORKER_TIMEOUT
+
+    def initialized(self):
+        self.initialized = True
+        self.worker_status = WorkerStatus.INITILAZED
 
 #    def getStatusReport(self):
 #       return "wid=%d alive = %d registered %s last_contact %s (%f seconds ago)\n" % \

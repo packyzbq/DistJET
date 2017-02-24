@@ -116,7 +116,7 @@ class Master(IMasterController):
         self.server = Server(self.recv_buffer, self.svc_name)
         self.server.initialize(svc_name)
         self.server.run()
-        log.info('master start server with service_name=%s',self.svc_name)
+        log.info('Master: start server with service_name=%s',self.svc_name)
 
         self.stop = False
 
@@ -124,9 +124,11 @@ class Master(IMasterController):
         for t in tasks:
             w = self.worker_registry.get_by_uuid(w_uuid)
             w.worker_status = WorkerRegistry.WorkerStatus.RUNNING
-            w.scheduled_tasks.append(t.tid)
+            #w.scheduled_tasks.append(t.tid)
+            w.assigned+=1
             send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, res_dir=t.res_dir)
             self.server.send_string(send_str, len(send_str), w_uuid, Tags.TASK_ADD)
+            log.info('Master: assign task=%d to worker=%d', t.tid, w.wid)
 
     def remove_worker(self, wid):
         self.task_scheduler.worker_removed(self.worker_registry.get(wid))
@@ -135,7 +137,7 @@ class Master(IMasterController):
     def register(self, w_uuid, capacity=10):
         worker = self.worker_registry.add_worker(w_uuid,capacity)
         if not worker:
-            log.warning('the uuid=%s of worker has already registered', w_uuid)
+            log.warning('Master: the uuid=%s of worker has already registered', w_uuid)
         else:
             self.server.send_int(worker.wid, 1, w_uuid, Tags.MPI_REGISTY_ACK)
 
@@ -160,9 +162,9 @@ class Master(IMasterController):
                     self.task_scheduler.worker_initialize(self.worker_registry.get(wid))
                     #init_boot, init_data = self.appmgr.get_app_init(wid)
                     #appid, send_str = MSG_wrapper(app_init_boot=init_boot, app_init_data=init_data,res_dir='/home/cc/zhaobq')
-                    w = self.worker_registry.get(wid)
-                    w.current_app = self.task_scheduler.appmgr.get_current_appid()
-                    self.server.send_string(send_str, len(send_str), w.w_uuid, Tags.APP_INI)
+                    #w = self.worker_registry.get(wid)
+                    #w.current_app = self.task_scheduler.appmgr.get_current_appid()
+                    #self.server.send_string(send_str, len(send_str), w.w_uuid, Tags.APP_INI)
 
                 # worker finish app_ini
                 elif msg.tag == Tags.APP_INI:
@@ -170,26 +172,18 @@ class Master(IMasterController):
                     recv_dict = eval(json.loads(msg.sbuf))
                     if 'error' in recv_dict:
                         # worker init error TODO stop worker or reassign init_task?
-                        log.warning('worker initialized failed')
+                        log.warning('Master: worker initialized failed')
                         pass
                     else:
-                        """
-                        if self.appmgr.check_init_res(recv_dict['wid'], recv_dict['res_dir']):
-                            w = self.worker_registry.get(recv_dict['wid'])
-                            try:
-                                w.alive_lock.require()
-                                w.initialized = True
-                                w.worker_status = WorkerRegistry.WorkerStatus.INITILAZED
-                            except:
-                                pass
-                            finally:
-                                w.alive_lock.release()
-                        else:  # init result error
-                            # TODO reassign init_task?
-                            pass
-                        """
                         #TODO check the result of initial?
-                        log.info('worker:%d initial finished', recv_dict['wid'])
+                        w = self.worker_registry.get(recv_dict['wid'])
+                        try:
+                            w.alive_lock.require()
+                            w.initialized()
+                        finally:
+                            w.alive_lock.release()
+
+                        log.info('Master: worker:%d initial finished', recv_dict['wid'])
 
                 # worker finish task
                 elif msg.tag == Tags.TASK_FIN:
@@ -201,25 +195,6 @@ class Master(IMasterController):
                         self.task_scheduler.task_failed(recv_dict['tid'])
                     w = self.worker_registry.get(recv_dict['wid'])
 
-
-
-
-                    try:
-                        w.alive_lock.require()
-                        t = self.appmgr.get_task(w.current_app, recv_dict['tid'])
-                        if recv_dict['status'] == TaskStatus.COMPLETED:
-                            t.status = TaskStatus.COMPLETED
-                            # TODO add task other details
-                            self.task_scheduler.task_completed(t)
-                            del (w.scheduled_tasks[recv_dict['tid']])
-                        elif recv_dict['status'] == TaskStatus.FAILED:
-                            t.status = TaskStatus.FAILED
-                            self.task_scheduler.task_failed(t)
-                            del (w.scheduled_tasks[recv_dict['tid']])
-                        else:
-                            pass
-                    finally:
-                        w.alive_lock.release()
                 elif msg.tag == Tags.APP_FIN:
                     recv_dict = eval(json.loads(msg.sbuf))
                     if self.task_scheduler.has_more_work():
@@ -237,3 +212,7 @@ class Master(IMasterController):
                         w.last_contact_time = time.time()
                     finally:
                         w.alive_lock.release()
+
+                elif msg.tag == Tags.TASK_SYNC:
+                    #TODO
+                    pass

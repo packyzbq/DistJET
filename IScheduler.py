@@ -60,7 +60,7 @@ class IScheduler(BaseThread):
         """
         pass
 
-    def task_failed(self,task):
+    def task_failed(self,tid):
         """
         called when tasks completed with failure
         :param task:
@@ -68,11 +68,9 @@ class IScheduler(BaseThread):
         """
         raise NotImplementedError
 
-    def task_completed(self, task):
+    def task_completed(self, tid, time_start, time_finish):
         """
         this method is called when task completed ok.
-        :param task:  Task
-        :return:
         """
         raise NotImplementedError
 
@@ -93,12 +91,14 @@ class SimpleScheduler(IScheduler):
         #self.completed_tasks_queue = Queue.Queue()
         self.processing = False
         self.current_app = self.appmgr.current_app()[1]
+        self.scheduled_task_queue = {}                  # record tasks matches worker
         for t in self.current_app.task_list:
             self.task_todo_Queue.put(self.current_app.task_list[t])
 
     def worker_removed(self, w_entry):
-        for v in w_entry.scheduled_tasks.values():
-            self.task_todo_Queue.put_nowait(v)
+        q = self.scheduled_task_queue[w_entry.wid]
+        while not q.empty():
+            self.task_todo_Queue.put_nowait(q.get())
 
     def has_more_work(self):
         return not self.task_todo_Queue.empty()
@@ -114,15 +114,17 @@ class SimpleScheduler(IScheduler):
 
     def task_failed(self,tid):
         task = self.current_app.get_task_by_id(tid)
-        if self.policy.REDO_IF_FAILED_TASKS:
+        if self.policy.REDO_IF_FAILED_TASKS and len(task.history) < self.policy.REDO_LIMITS:
             log.info('TaskScheduler: task=%d fail, waiting for reassign', tid)
             self.task_unschedule(task)
         else:
             log.info('TaskScheduler: task=%d fail, ignored')
+            task.fail()
             self.completed_Queue.put_nowait(task)
 
-    def task_completed(self, tid):
+    def task_completed(self, tid, time_start, time_finish):
         task = self.current_app.get_task_by_id(tid)
+        task.complete(time_start, time_finish)
         self.completed_tasks.put(task)
         log.info('TaskScheduler: task=%d complete', tid)
 
@@ -160,22 +162,24 @@ class SimpleScheduler(IScheduler):
                 if availiable_list:
                     # if list is not empty, then assign task
                     for w in availiable_list:
+                        tmptask = self.task_todo_Queue.get_nowait()
                         try:
-                            self.master.schedule(w.w_uuid, self.task_todo_Queue.get_nowait())
+                            if not self.scheduled_task_queue.has_key(w.wid):
+                                self.scheduled_task_queue[w.wid] = Queue.Queue()
+                            self.scheduled_task_queue[w.wid].put(tmptask)
+                            self.master.schedule(w.w_uuid, tmptask)
                         except Queue.Empty:
                             break
                     #TODO no task assigned worker idle? or quit?
             # monitor task complete status
-            try:
                 # while True:
+            if not self.completed_Queue.empty():
                 t = self.completed_tasks.get()
                 self.appmgr.task_done(self.current_app, t.tid)
                 task_num += 1
                 # TODO logging
                 if len(self.appmgr.applist[self.current_app].task_list) == task_num:
                     break
-            except Queue.Empty:
-                pass
 
             time.sleep(0.1)
         self.appmgr.finilize(self.current_app.app_id)

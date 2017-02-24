@@ -11,8 +11,8 @@ class TaskStatus:
     COMPLETED = 3
     FAILED = 4
     LOST = 5
-    UNSCHEDULED = 6             # to be scheduled
-    SCHEDULED_HALT = 7          # to be performed
+    #UNSCHEDULED = 6             # to be scheduled
+    SCHEDULED_HALT = 7          # have scheduled, to be performed
 
 class Task:
     """
@@ -33,20 +33,28 @@ class Task:
         self.task_boot = work_script
         self.res_dir = res_dir
         self.task_data = data
-        self.status = TaskStatus.UNSCHEDULED
+        self.status = TaskStatus.INITIALIZED
 
     def status(self):
         return self.status
 
+    def fail(self):
+        self.status = TaskStatus.FAILED
+
+    def complete(self, time_start, time_finish):
+        self.status = TaskStatus.COMPLETED
+        self.detials().update(time_start,time_finish)
+
     def assign(self, wid):
         if not self.status is TaskStatus.NEW:
             try:
-                assert (self.status in [TaskStatus.FAILED, TaskStatus.UNSCHEDULED, TaskStatus.LOST])
+                assert (self.status in [TaskStatus.FAILED, TaskStatus.LOST])
             except:
                 #TODO logging
                 pass
             self.history.append(TaskDetail())
         self.detials().assign(wid)
+        self.status = TaskStatus.SCHEDULED_HALT
 
     def detials(self):
         return self.history[-1]
@@ -62,6 +70,7 @@ class TaskDetail:
         self.time_exec = 0
         self.time_finish = 0
         self.time_scheduled = 0
+        #self.result = TaskStatus.NEW
 
         self.error = None # store error code
 
@@ -70,6 +79,11 @@ class TaskDetail:
         assert(self.assigned_wid == -1)
         self.assigned_wid = wid
         self.time_scheduled = time.time()
+
+    def update(self, time_start, time_finish):
+        self.time_start = time_start
+        self.time_finish = time_finish
+
 
 
 class SampleTask:
