@@ -1,5 +1,6 @@
 """
 Main DistJET Package
+Author ZhaoBaoqi
 """
 
 from logger import  getLogger
