@@ -1,6 +1,6 @@
 import IScheduler
 from IApplicationManager import SimpleApplicationMgr
-import Task
+from Task import TaskStatus
 from MPI_Wrapper import Tags
 from MPI_Wrapper import Server
 import WorkerRegistry
@@ -157,12 +157,11 @@ class Master(IMasterController):
                 # worker ask for app_ini
                 elif msg.tag == Tags.APP_INI_ASK:
                     wid = msg.ibuf
-
-                    init_boot, init_data = self.appmgr.get_app_init(wid)
-                    appid, send_str = MSG_wrapper(app_init_boot=init_boot, app_init_data=init_data,
-                                                  res_dir='/home/cc/zhaobq')
+                    self.task_scheduler.worker_initialize(self.worker_registry.get(wid))
+                    #init_boot, init_data = self.appmgr.get_app_init(wid)
+                    #appid, send_str = MSG_wrapper(app_init_boot=init_boot, app_init_data=init_data,res_dir='/home/cc/zhaobq')
                     w = self.worker_registry.get(wid)
-                    w.current_app = appid
+                    w.current_app = self.task_scheduler.appmgr.get_current_appid()
                     self.server.send_string(send_str, len(send_str), w.w_uuid, Tags.APP_INI)
 
                 # worker finish app_ini
@@ -174,6 +173,7 @@ class Master(IMasterController):
                         log.warning('worker initialized failed')
                         pass
                     else:
+                        """
                         if self.appmgr.check_init_res(recv_dict['wid'], recv_dict['res_dir']):
                             w = self.worker_registry.get(recv_dict['wid'])
                             try:
@@ -187,11 +187,23 @@ class Master(IMasterController):
                         else:  # init result error
                             # TODO reassign init_task?
                             pass
+                        """
+                        #TODO check the result of initial?
+                        log.info('worker:%d initial finished', recv_dict['wid'])
 
+                # worker finish task
                 elif msg.tag == Tags.TASK_FIN:
                     recv_dict = eval(json.loads(msg.sbuf))
                     # wid, tid, time_start, time_fin, status
+                    if recv_dict['status'] == TaskStatus.COMPLETED:
+                        self.task_scheduler.task_completed(recv_dict['tid'])
+                    else:
+                        self.task_scheduler.task_failed(recv_dict['tid'])
                     w = self.worker_registry.get(recv_dict['wid'])
+
+
+
+
                     try:
                         w.alive_lock.require()
                         t = self.appmgr.get_task(w.current_app, recv_dict['tid'])

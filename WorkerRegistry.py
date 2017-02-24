@@ -71,7 +71,7 @@ class WorkerRegisty:
         self.last_wid= 0
         self.lock = threading.RLock()
 
-        self.__alive_workers = {}       # w_uudi:wid
+        self.__alive_workers = {}       # w_uuid:wid
 
     def add_worker(self, w_uuid, max_capacity):
         self.lock.acquire()
@@ -121,19 +121,28 @@ class WorkerRegisty:
     def get_worker_list(self):
         return self.__all_workers.values()
 
+    def get_availiable_worker_list(self):
+        """
+        :return:the list of availiable worker
+        """
+        availiable_list = []
+        for w_uuid in self.__alive_workers:
+            w_entry = self.get_by_uuid(w_uuid)
+            if w_entry.initialized and w_entry.assigned < w_entry.max_capacity:
+                availiable_list.append(w_entry)
+        return availiable_list
+
     def get_aviliable_worker(self, room=False):
-        """
-        :param room:
-        :return: room=>true, return wid:room to be assigned
-        """
+    #:param room:
+    #:return: room=>true, return wid:room to be assigned
         for w_uuid in self.__alive_workers:
             wentry = self.get_by_uuid(w_uuid)
             if wentry.initialized and wentry.assigned < wentry.max_capacity:
                 if room:
-                    return (wentry.wid, wentry.max_capacity - wentry.assigned )
+                    return (wentry, wentry.max_capacity - wentry.assigned )
                 else:
-                    return wentry.wid
+                    return wentry
         if room:
-            return (-1,-1)
+            return (None,-1)
         else:
-            return -1
+            return None

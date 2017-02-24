@@ -34,6 +34,12 @@ class IApplication:
     def set_args(self, **kwargs):
         self.args = kwargs
 
+    def get_task_by_id(self,tid):
+        try:
+            return self.task_list[tid]
+        except KeyError:
+            return None
+
     def create_tasks(self):
         raise NotImplementedError
 

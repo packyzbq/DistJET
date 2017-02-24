@@ -1,9 +1,12 @@
 import BaseThread
+import logger
 import Queue
 import json
 import time
 
 from MPI_Wrapper import Tags
+
+log = logger.getLogger('TaskScheduler')
 
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
@@ -14,6 +17,10 @@ class Policy:
     """
     ## False => ignore failed tasks and continue running; True => redo the failed tasks
     REDO_IF_FAILED_TASKS = False
+    # False=> ignore failed application initialize and then the worker quit; True => reinitialize
+    REDO_IF_FAILED_APPINI = False
+    # the limit times to reassign tasks or initial worker
+    REDO_LIMITS = 3
 
 class IScheduler(BaseThread):
     def __int__(self, master, appmgr):
@@ -21,6 +28,7 @@ class IScheduler(BaseThread):
         self.master = master
         self.appmgr = appmgr
         self.task_todo_Queue = Queue.Queue()
+        self.completed_Queue = Queue.Queue()
         #self.task_unschedule_queue = Queue.Queue()
         policy = Policy()
 
@@ -82,9 +90,9 @@ class SimpleScheduler(IScheduler):
     policy = Policy()
     def __init__(self, master, appmgr):
         IScheduler.__init__(master, appmgr)
-        self.completed_tasks_queue = Queue.Queue()
+        #self.completed_tasks_queue = Queue.Queue()
         self.processing = False
-        self.current_app = appmgr.current_app()[1]
+        self.current_app = self.appmgr.current_app()[1]
         for t in self.current_app.task_list:
             self.task_todo_Queue.put(self.current_app.task_list[t])
 
@@ -98,21 +106,25 @@ class SimpleScheduler(IScheduler):
     def worker_initialize(self, w_entry):
         if self.current_app.init_boot:
             send_str = MSG_wrapper(app_ini_boot=self.current_app.init_boot, app_ini_data=self.current_app.init_data,
-                               res_dir='/home/cc/zhaobq')
+                               res_dir=self.current_app.res_dir)
             self.master.server.send_str(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
         else:           #if no init boot, send empty string
             send_str = MSG_wrapper(app_ini_boot="", app_ini_data="",res_dir="")
             self.master.server.send_string(send_str,len(send_str), w_entry.w_uuid, Tags.APP_INI)
 
-    def task_failed(self,task):
+    def task_failed(self,tid):
+        task = self.current_app.get_task_by_id(tid)
         if self.policy.REDO_IF_FAILED_TASKS:
+            log.info('TaskScheduler: task=%d fail, waiting for reassign', tid)
             self.task_unschedule(task)
         else:
-            self.task_completed(task)
+            log.info('TaskScheduler: task=%d fail, ignored')
+            self.completed_Queue.put_nowait(task)
 
-    def task_completed(self, task):
-        #self.completed_tasks.put(task)
-        self.appmgr.task_done(self.current_app.app_id, task)
+    def task_completed(self, tid):
+        task = self.current_app.get_task_by_id(tid)
+        self.completed_tasks.put(task)
+        log.info('TaskScheduler: task=%d complete', tid)
 
     def task_unschedule(self, tasks):
         for t in tasks:
@@ -121,13 +133,14 @@ class SimpleScheduler(IScheduler):
     def run(self):
         """
         1. split application into tasks
-        2. initialize worker
+        2. check initialize worker
         3. assign tasks
         :return:
         """
         self.processing = True
         #TODO split application
         # initialize worker
+        """
         try:
             self.master.worker_registry.lock.require()
             for w in self.master.worker_registry.get_worker_list():
@@ -136,25 +149,22 @@ class SimpleScheduler(IScheduler):
                     self.worker_initialize(w)
         finally:
             self.master.worker_registry.lock.release()
-
+        """
         task_num = 0
 
         while not self.get_stop_flag():
         #3. assign tasks
-            #TODO rewrite schedule tasks
             if self.has_more_work():
                 # schedule tasks to initialized workers
-                for w, r in self.master.worker_registry.get_aviliable_worker(True):
-                    tasks = []
-                    try:
-                        for i in range(r):
-                            tasks.append(self.task_todo_Queue.get_nowait())
-                    except Queue.Empty:
-                        break
-                    if tasks:
-                        self.master.schedule(w.w_uuid, tasks)
-                    else:
-                        break
+                availiable_list = self.master.worker_registry.get_availiable_worker_list()
+                if availiable_list:
+                    # if list is not empty, then assign task
+                    for w in availiable_list:
+                        try:
+                            self.master.schedule(w.w_uuid, self.task_todo_Queue.get_nowait())
+                        except Queue.Empty:
+                            break
+                    #TODO no task assigned worker idle? or quit?
             # monitor task complete status
             try:
                 # while True:

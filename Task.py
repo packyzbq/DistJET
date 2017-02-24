@@ -46,9 +46,9 @@ class Task:
                 #TODO logging
                 pass
             self.history.append(TaskDetail())
-        self.mydetial().assign(wid)
+        self.detials().assign(wid)
 
-    def mydetial(self):
+    def detials(self):
         return self.history[-1]
 
 class TaskDetail:
@@ -62,6 +62,8 @@ class TaskDetail:
         self.time_exec = 0
         self.time_finish = 0
         self.time_scheduled = 0
+
+        self.error = None # store error code
 
     def assign(self, wid):
         assert(wid >0)
