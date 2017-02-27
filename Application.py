@@ -64,6 +64,7 @@ class UnitTestApp(IApplication):
     def split_data(self):
         if not os.environ.has_key('JUNOTESTROOT'):
             #TODO logging set env
+
             pass
         execdir = os.environ['JUNOTESTROOT']
         child = subprocess.Popen([execdir+'/python/JunoTest/junotest', 'UnitTest','list'], stdout=subprocess.PIPE)

@@ -14,7 +14,9 @@ class Tags:
 
 
     TASK_FIN = 110      #w->m   worker notify completed tasks,
+
     TASK_SYNC = 111     #m<->w   master ask for work info
+                        # worker->master: wid,tid
     APP_INI = 112   #m->w   master schedule app and transfer the init data  (app_ini_boot, app_ini_data, res_dir)
                     #w->m   init result                                     (wid, res_dir)
     APP_INI_ASK = 113   #w->m ask for app ini boot and data

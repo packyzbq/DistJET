@@ -1,3 +1,5 @@
+import Task
+import Policy
 import BaseThread
 import logger
 import Queue
@@ -11,16 +13,6 @@ log = logger.getLogger('TaskScheduler')
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
 
-class Policy:
-    """
-    Collection of policy values. Empty by default.
-    """
-    ## False => ignore failed tasks and continue running; True => redo the failed tasks
-    REDO_IF_FAILED_TASKS = False
-    # False=> ignore failed application initialize and then the worker quit; True => reinitialize
-    REDO_IF_FAILED_APPINI = False
-    # the limit times to reassign tasks or initial worker
-    REDO_LIMITS = 3
 
 class IScheduler(BaseThread):
     def __int__(self, master, appmgr):
@@ -30,10 +22,13 @@ class IScheduler(BaseThread):
         self.task_todo_Queue = Queue.Queue()
         self.completed_Queue = Queue.Queue()
         #self.task_unschedule_queue = Queue.Queue()
-        policy = Policy()
+        self.policy = Policy()
 
     def initialize(self):
         pass
+
+    def set_running_task(self, tid):
+        self.appmgr.current_app().task_list[tid].status = Task.TaskStatus.PROCESSING
 
     def has_more_work(self):
         """
@@ -41,7 +36,6 @@ class IScheduler(BaseThread):
         :return: bool
         """
         pass
-
 
     def worker_initialize(self, w_entry):
         """
@@ -85,7 +79,7 @@ class IScheduler(BaseThread):
         raise NotImplementedError
 
 class SimpleScheduler(IScheduler):
-    policy = Policy()
+    #policy = Policy()
     def __init__(self, master, appmgr):
         IScheduler.__init__(master, appmgr)
         #self.completed_tasks_queue = Queue.Queue()

@@ -129,6 +129,7 @@ class Master(IMasterController):
             send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, res_dir=t.res_dir)
             self.server.send_string(send_str, len(send_str), w_uuid, Tags.TASK_ADD)
             log.info('Master: assign task=%d to worker=%d', t.tid, w.wid)
+            t.details().assign(w.wid)
 
     def remove_worker(self, wid):
         self.task_scheduler.worker_removed(self.worker_registry.get(wid))
@@ -214,5 +215,8 @@ class Master(IMasterController):
                         w.alive_lock.release()
 
                 elif msg.tag == Tags.TASK_SYNC:
-                    #TODO
-                    pass
+                    # receive worker running task
+                    recv_dict = eval(json.loads(msg.sbuf))
+                    if recv_dict['tid']:
+                        self.task_scheduler.set_running_task(recv_dict['tid'])
+
