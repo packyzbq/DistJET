@@ -1,6 +1,8 @@
 import os
 import subprocess
+
 import Task
+
 
 class IApplication:
     def __init__(self):

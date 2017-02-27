@@ -1,11 +1,11 @@
-import Task
-import Policy
-import BaseThread
-import logger
 import Queue
 import json
 import time
 
+import BaseThread
+import Policy
+import Task
+import logger
 from MPI_Wrapper import Tags
 
 log = logger.getLogger('TaskScheduler')

@@ -1,16 +1,16 @@
-import IScheduler
-from IApplicationManager import SimpleApplicationMgr
-from Task import TaskStatus
-from MPI_Wrapper import Tags
-from MPI_Wrapper import Server
-import WorkerRegistry
-from BaseThread import BaseThread
+import json
+import time
+
 import IRecv_Module as IM
 
+import IScheduler
+import WorkerRegistry
 import logger
-import time
-import json
-import Queue
+from BaseThread import BaseThread
+from IApplicationManager import SimpleApplicationMgr
+from MPI_Wrapper import Server
+from MPI_Wrapper import Tags
+from Task import TaskStatus
 
 WORKER_NUM = 1
 CONTROL_DELAY = 2 # the interval that controlThread scan worker registry
@@ -144,7 +144,7 @@ class Master(IMasterController):
 
     def startProcessing(self):
 
-        self.task_scheduler = IScheduler.SimpleScheduler(self,SimpleApplicationMgr(applications=self.applications))
+        self.task_scheduler = IScheduler.SimpleScheduler(self, SimpleApplicationMgr(applications=self.applications))
         self.task_scheduler.start()
         self.control_thread.start()
         # handle received message

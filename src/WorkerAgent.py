@@ -1,19 +1,19 @@
+import Queue
+import json
+import subprocess
+import threading
+import time
+
+import IRecv_Module as IM
+
+import logger
 from BaseThread import BaseThread
 from MPI_Wrapper import Client
-from MPI_Wrapper import MSG
 from MPI_Wrapper import Tags
-import IRecv_Module as IM
-from WorkerRegistry import WorkerStatus
 from Policy import Policy
-from Task import TaskStatus
 from Task import SampleTask
-import logger
-
-import threading
-import subprocess
-import json
-import time
-import Queue
+from Task import TaskStatus
+from WorkerRegistry import WorkerStatus
 
 policy = Policy()
 
