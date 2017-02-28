@@ -40,7 +40,7 @@ class Server:
     """
     def __init__(self, recv_buffer, svcname):
         self.server = SM.MPI_Server(recv_buffer, svcname)
-    def initial(self):
+    def initialize(self):
         ret = self.server.initialize()
         if ret != 0:
             #TODO log init error
@@ -51,6 +51,9 @@ class Server:
 
     def send_string(self, str ,msgsize, dest, tag):
         self.server.send_string(str, msgsize, dest, tag)
+
+    def run(self):
+        self.server.run()
 
     def command_analyze(self, command):
         pass

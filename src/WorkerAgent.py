@@ -3,6 +3,8 @@ import json
 import subprocess
 import threading
 import time
+import ConfigParser
+import sys
 
 import IRecv_Module as IM
 
@@ -140,7 +142,7 @@ class WorkerAgent(BaseThread):
                             # TODO register fail
                             raise
 
-                    elif time.time() - self.register_time > delay:
+                    elif time.time() - self.register_time > policy.PING_DELAY:
                         # TODO log: register timeout , try to register again
                         raise
                     else:
@@ -325,7 +327,6 @@ class WorkerAgent(BaseThread):
 #        msg = MSG(tags, pack)
 #        self.recv_handler.MSGqueue.put_nowait(msg)
 
-
 class Worker(BaseThread):
     """
     worker
@@ -447,3 +448,20 @@ class Worker(BaseThread):
 
     def set_status(self, status):
         self.status = status
+
+
+if __name__ == '__main__':
+    script = sys.argv[1]
+    conf = ConfigParser.ConfigParser()
+    conf.read(script)
+    app_conf_list = conf.sections()
+    svc_name = None
+    capacity = 1
+
+    #workspace = conf.get('global', 'workspace')
+    svc_name = conf.get('global', 'service_name')
+    capacity = conf.get('global','worker_capacity')
+
+
+    workerAgent = WorkerAgent(svc_name, capacity)
+    workerAgent.start()

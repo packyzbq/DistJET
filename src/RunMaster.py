@@ -1,5 +1,7 @@
 import json
 import time
+import ConfigParser
+import sys
 
 import IRecv_Module as IM
 
@@ -114,7 +116,7 @@ class Master(IMasterController):
         self.__wid = 1
 
         self.server = Server(self.recv_buffer, self.svc_name)
-        self.server.initialize(svc_name)
+        self.server.initialize()
         self.server.run()
         log.info('Master: start server with service_name=%s',self.svc_name)
 
@@ -220,3 +222,31 @@ class Master(IMasterController):
                     if recv_dict['tid']:
                         self.task_scheduler.set_running_task(recv_dict['tid'])
 
+if __name__ == "__main__":
+    script = sys.argv[1]
+
+    # read the config script
+    conf = ConfigParser.ConfigParser()
+    conf.read(script)
+    app_conf_list = conf.sections()
+    applications = []
+    svc_name = None
+    from Application import UnitTestApp
+
+    #workspace = conf.get('global', 'workspace')
+    svc_name = conf.get('global', 'service_name')
+    # MORE
+
+    for item in app_conf_list:
+        if item == 'global':
+            continue
+        app = UnitTestApp()
+        app.set_boot(conf.get(item, "boot"))
+        app.set_resdir(conf.get(item, "result_dir"))
+        app.set_data(conf.get(item, "data"))
+        applications.append(app)
+
+    if not svc_name:
+        svc_name = "TEST"
+    master = Master(applications,svc_name)
+    master.startProcessing()
