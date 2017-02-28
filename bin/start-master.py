@@ -10,6 +10,7 @@ parser.add_option("--local", dest="local", action="store_const", const="true")
 parser.add_option("--condor", dest="condor", action="store_const", const="true")
 parser.add_option("--debug", dest="loglevel", action="store_const", const="DEBUG")
 parser.add_option("--ini", dest="script_file")
+parser.add_option("-n", dest="worker_n")
 
 (options, args) = parser.parse_args()
 
