@@ -8,7 +8,7 @@ class IApplication:
     def __init__(self):
         self.app_boot=[]
         self.res_dir = ""
-        self.data = []  #保存数据的路径
+        self.data = []  #store the directory of data
         self.args = {}
         self.task_list = {}  # tid:task
         self.task_reslist = {} # tid: result of task

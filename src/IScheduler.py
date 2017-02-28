@@ -133,6 +133,7 @@ class SimpleScheduler(IScheduler):
         3. assign tasks
         :return:
         """
+        log.info("TaskScheduler: start...")
         self.processing = True
         #TODO split application
         # initialize worker

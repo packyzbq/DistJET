@@ -17,6 +17,7 @@ def getLogger(name, level=logging.INFO):
     logger = logging.getLogger('DistJET.'+name)
     logger.setLevel(level)
     logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
     return logger
 
 def setlevel(level, logger=None):
