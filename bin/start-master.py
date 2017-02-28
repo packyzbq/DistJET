@@ -44,7 +44,7 @@ if options.local and not options.condor:
 
     # start mpd
     try:
-        subprocess.Popen(["mpd&"])
+        os.system("mpd&")
     except:
         print("Start mpd deamon process error, exit...")
         exit()
