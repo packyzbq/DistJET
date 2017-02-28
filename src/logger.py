@@ -1,10 +1,15 @@
 import logging
+import os
 
 #FORMAT = '%(asctime)s: %(message)s'
 
 #logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 
 def getLogger(name, level=logging.INFO):
+    try:
+        level = os.environ['DistJET_LOG_LEVEL']
+    except:
+        pass
     format = logging.Formatter('%(asctime)s] %(threadName)s %(levelname)s: %(message)s')
     handler = logging.FileHandler('DistJET.'+name+'.log')
     handler.setFormatter(format)
@@ -14,5 +19,5 @@ def getLogger(name, level=logging.INFO):
     logger.addHandler(handler)
     return logger
 
-def setlevel(level, logger):
-    logger.setLevel(level)
+def setlevel(level, logger=None):
+    os.environ['DistJET_LOG_LEVEL'] = level
