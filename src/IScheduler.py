@@ -2,7 +2,7 @@ import Queue
 import json
 import time
 
-import BaseThread
+from BaseThread import BaseThread
 import Policy
 import Task
 import logger
@@ -22,7 +22,7 @@ class IScheduler(BaseThread):
         self.task_todo_Queue = Queue.Queue()
         self.completed_Queue = Queue.Queue()
         #self.task_unschedule_queue = Queue.Queue()
-        self.policy = Policy()
+        self.policy = Policy.Policy()
 
     def initialize(self):
         pass
