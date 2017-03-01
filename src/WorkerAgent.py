@@ -60,15 +60,7 @@ class WorkerAgent(BaseThread):
         import uuid as uuid_mod
         self.uuid = str(uuid_mod.uuid4())
         self.client = Client(self.recv_buffer, svcname, self.uuid)
-        ret = self.client.initial()
-        if ret == 0:
-            #logging connect success
-            log.info('WorkerAgent: Find server, connect successfully')
-        else:
-            #logging connect error give error code
-            log.error("WorkerAgent: mpi client initial error, errer code=%d", ret)
-            exit()
-
+        self.client.initial()
         self.wid = None
         #self.appid = None # the app that are running
         self.capacity = capacity                   # can change

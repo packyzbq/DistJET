@@ -150,3 +150,6 @@ class WorkerRegisty:
             return (None,-1)
         else:
             return None
+
+    def __iter__(self):
+        return self.__all_workers.copy().__iter__()

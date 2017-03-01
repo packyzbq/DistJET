@@ -36,14 +36,14 @@ class ControlThread(BaseThread):
         control_log.info('Control Thread start...')
         while not self.get_stop_flag():
             try:
-                for w in self.master.worker_registry.get_worker_list():
-                    #w = self.master.worker_registry.get(wid)
+                for wid in self.master.worker_registry:
+                    w = self.master.worker_registry.get(wid)
                     try:
                         w.alive_lock.require()
                         if w.alive and w.lost():
                             # lost worker
-                            control_log.warning('lost worker: %d',w.wid)
-                            self.master.remove_worker(w.wid)
+                            control_log.warning('lost worker: %d',wid)
+                            self.master.remove_worker(wid)
                             continue
                         if w.alive:
                             if w.processing_task:
@@ -53,8 +53,8 @@ class ControlThread(BaseThread):
                                     w.idle_time = time.time()
                             if w.idle_timeout():
                                 # idle timeout, worker will be removed
-                                control_log.warning('worker %d idle too long and will be removed', w.wid)
-                                self.master.remove_worker(w.wid)
+                                control_log.warning('worker %d idle too long and will be removed', wid)
+                                self.master.remove_worker(wid)
                     finally:
                         w.alive_lock.release()
             finally:
@@ -116,12 +116,7 @@ class Master(IMasterController):
         self.__wid = 1
 
         self.server = Server(self.recv_buffer, self.svc_name)
-        ret = self.server.initialize()
-        if ret == 0:
-            log.info('Master: Initial server successfully')
-        else:
-            log.error("Master: Can't initialize server, error code=%d", ret)
-            exit()
+        self.server.initialize()
         self.server.run()
         log.info('Master: start server with service_name=%s',self.svc_name)
 
