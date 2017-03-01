@@ -15,7 +15,7 @@ def MSG_wrapper(**kwd):
 
 
 class IScheduler(BaseThread):
-    def __int__(self, master, appmgr):
+    def __init__(self, master, appmgr):
         BaseThread.__init__(self, name=self.__class__.__name__)
         self.master = master
         self.appmgr = appmgr
@@ -81,7 +81,7 @@ class IScheduler(BaseThread):
 class SimpleScheduler(IScheduler):
     #policy = Policy()
     def __init__(self, master, appmgr):
-        IScheduler.__init__(master, appmgr)
+        IScheduler.__init__(self, master,appmgr)
         #self.completed_tasks_queue = Queue.Queue()
         self.processing = False
         self.current_app = self.appmgr.current_app()[1]

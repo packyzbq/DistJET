@@ -36,14 +36,14 @@ class ControlThread(BaseThread):
         control_log.info('Control Thread start...')
         while not self.get_stop_flag():
             try:
-                for wid in self.master.worker_registry:
-                    w = self.master.worker_registry.get(wid)
+                for w in self.master.worker_registry.get_worker_list():
+                    #w = self.master.worker_registry.get(wid)
                     try:
                         w.alive_lock.require()
                         if w.alive and w.lost():
                             # lost worker
-                            control_log.warning('lost worker: %d',wid)
-                            self.master.remove_worker(wid)
+                            control_log.warning('lost worker: %d',w.wid)
+                            self.master.remove_worker(w.wid)
                             continue
                         if w.alive:
                             if w.processing_task:
@@ -53,8 +53,8 @@ class ControlThread(BaseThread):
                                     w.idle_time = time.time()
                             if w.idle_timeout():
                                 # idle timeout, worker will be removed
-                                control_log.warning('worker %d idle too long and will be removed', wid)
-                                self.master.remove_worker(wid)
+                                control_log.warning('worker %d idle too long and will be removed', w.wid)
+                                self.master.remove_worker(w.wid)
                     finally:
                         w.alive_lock.release()
             finally:
@@ -116,7 +116,12 @@ class Master(IMasterController):
         self.__wid = 1
 
         self.server = Server(self.recv_buffer, self.svc_name)
-        self.server.initialize()
+        ret = self.server.initialize()
+        if ret == 0:
+            log.info('Master: Initial server successfully')
+        else:
+            log.error("Master: Can't initialize server, error code=%d", ret)
+            exit()
         self.server.run()
         log.info('Master: start server with service_name=%s',self.svc_name)
 
@@ -145,8 +150,8 @@ class Master(IMasterController):
             self.server.send_int(worker.wid, 1, w_uuid, Tags.MPI_REGISTY_ACK)
 
     def startProcessing(self):
-
-        self.task_scheduler = IScheduler.SimpleScheduler(self, SimpleApplicationMgr(applications=self.applications))
+        simple_appmgr = SimpleApplicationMgr(applications=self.applications)
+        self.task_scheduler = IScheduler.SimpleScheduler(self, simple_appmgr)
         self.task_scheduler.start()
         self.control_thread.start()
         # handle received message
