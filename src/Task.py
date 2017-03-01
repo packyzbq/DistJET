@@ -50,8 +50,7 @@ class Task:
             try:
                 assert (self.status in [TaskStatus.FAILED, TaskStatus.LOST])
             except:
-                #TODO logging
-                pass
+                print("@Task: task is in wrong status when assign")
             self.history.append(TaskDetail())
         self.detials().assign(wid)
         self.status = TaskStatus.SCHEDULED_HALT

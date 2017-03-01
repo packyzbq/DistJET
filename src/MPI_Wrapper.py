@@ -43,7 +43,7 @@ class Server:
     def initialize(self):
         ret = self.server.initialize()
         if ret != 0:
-            #TODO log init error
+            # TODO log init error, boost return error need to be handled
             pass
 
     def send_int(self, int_data, msgsize, dest, tags):
@@ -58,6 +58,8 @@ class Server:
     def command_analyze(self, command):
         pass
 
+    def stop(self):
+        self.server.stop()
 
 class Client:
     """
@@ -83,7 +85,7 @@ class Client:
         self.send_string(str, msgsize, dest, tags)
 
     def stop(self):
-        pass
+        self.client.stop()
 
 class MSG:
     def __init__(self, tag, pack):

@@ -75,6 +75,7 @@ class UnitTestApp(IApplication):
         return case
 
     def create_tasks(self):
+        self._task_index = 0
         if self.args.has_key('data') and self.args['data'] == 'all':
             cases = self.split_data()
         else:
@@ -89,7 +90,6 @@ class UnitTestApp(IApplication):
             resfile.write('-------------------- result of TestCase --------------------\n')
 
     def task_done(self, tid):
-        #TODO update tasks info
         #analyze result log file according to task data
         if self.analyze_log(self.task_list[tid].data):
             self.task_reslist[tid] = True

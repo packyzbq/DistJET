@@ -9,6 +9,7 @@ class Policy:
     REDO_IF_FAILED_APPINI = False
     # the limit times to reassign tasks or initial worker
     REDO_LIMITS = 3
-
+    #
+    REDO_IF_WORKER_INIT_FAIL = False
     # Worker ping interval, default = 10s
     PING_DELAY = 10

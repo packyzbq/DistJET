@@ -13,12 +13,14 @@ from IApplicationManager import SimpleApplicationMgr
 from MPI_Wrapper import Server
 from MPI_Wrapper import Tags
 from Task import TaskStatus
+from Policy import Policy
 
 WORKER_NUM = 1
 CONTROL_DELAY = 2 # the interval that controlThread scan worker registry
 
 control_log = logger.getLogger('ControlLog')
 log = logger.getLogger('Master')
+policy = Policy()
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
 
@@ -174,11 +176,14 @@ class Master(IMasterController):
                     # worker init success or fail
                     recv_dict = eval(json.loads(msg.sbuf))
                     if 'error' in recv_dict:
-                        # worker init error TODO stop worker or reassign init_task?
-                        log.warning('Master: worker initialized failed')
-                        pass
+                        # worker init error  /stop worker or reassign init_task?
+                        log.warning('Master: worker=%d initialized failed', recv_dict['wid'])
+                        if policy.REDO_IF_WORKER_INIT_FAIL:
+                            log.warning('Master: worker=%d ready to initilization', recv_dict['wid'])
+                            pass
+                        else:
+                            log.warning('Master: worker=%d ignore failed initilization', recv_dict['wid'])
                     else:
-                        #TODO check the result of initial?
                         w = self.worker_registry.get(recv_dict['wid'])
                         try:
                             w.alive_lock.require()
@@ -201,8 +206,8 @@ class Master(IMasterController):
                 elif msg.tag == Tags.APP_FIN:
                     recv_dict = eval(json.loads(msg.sbuf))
                     if self.task_scheduler.has_more_work():
-                        # TODO schedule more work
-                        pass
+                        # schedule 1 more work
+                        self.task_scheduler.req_more_task(int(recv_dict['wid']))
                     else:
                         fin_boot, fin_data = self.appmgr.get_app_fin(recv_dict['wid'])
                         send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)

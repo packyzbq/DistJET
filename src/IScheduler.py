@@ -75,6 +75,9 @@ class IScheduler(BaseThread):
         :return:
         """
 
+    def req_more_task(self, wid):
+        raise NotImplementedError
+
     def run(self):
         raise NotImplementedError
 
@@ -119,12 +122,17 @@ class SimpleScheduler(IScheduler):
     def task_completed(self, tid, time_start, time_finish):
         task = self.current_app.get_task_by_id(tid)
         task.complete(time_start, time_finish)
-        self.completed_tasks.put(task)
+        self.completed_Queue.put(task)
         log.info('TaskScheduler: task=%d complete', tid)
 
     def task_unschedule(self, tasks):
         for t in tasks:
             self.task_todo_Queue.put(t)
+
+    def req_more_task(self, wid):
+        w_entry = self.master.worker_registry.get(wid)
+        tmp_task = self.task_todo_Queue.get()
+        self.master.schedule(w_entry.w_uuid, tmp_task)
 
     def run(self):
         """
@@ -135,48 +143,42 @@ class SimpleScheduler(IScheduler):
         """
         log.info("TaskScheduler: start...")
         self.processing = True
-        #TODO split application
+
         # initialize worker
-        """
-        try:
-            self.master.worker_registry.lock.require()
-            for w in self.master.worker_registry.get_worker_list():
-                if not w.initialized and not w.current_app:
-                    w.current_app = self.current_app
-                    self.worker_initialize(w)
-        finally:
-            self.master.worker_registry.lock.release()
-        """
-        task_num = 0
+        while self.current_app:
+            task_num = 0
+            # split task
+            self.appmgr.load_app_tasks(self.current_app)
+            while not self.get_stop_flag():
+            #3. assign tasks
+                if self.has_more_work():
+                    # schedule tasks to initialized workers
+                    availiable_list = self.master.worker_registry.get_availiable_worker_list()
+                    if availiable_list:
+                        # if list is not empty, then assign task
+                        for w in availiable_list:
+                            tmptask = self.task_todo_Queue.get_nowait()
+                            try:
+                                if not self.scheduled_task_queue.has_key(w.wid):
+                                    self.scheduled_task_queue[w.wid] = Queue.Queue()
+                                self.scheduled_task_queue[w.wid].put(tmptask)
+                                self.master.schedule(w.w_uuid, tmptask)
+                            except Queue.Empty:
+                                break
+                # monitor task complete status
+                    # while True:
+                if not self.completed_Queue.empty():
+                    t = self.completed_Queue.get()
+                    self.appmgr.task_done(self.current_app, t.tid)
+                    task_num += 1
+                    log.info('TaskScheduler: task=% complete...')
+                    if len(self.appmgr.applist[self.current_app].task_list) == task_num:
+                        break
 
-        while not self.get_stop_flag():
-        #3. assign tasks
-            if self.has_more_work():
-                # schedule tasks to initialized workers
-                availiable_list = self.master.worker_registry.get_availiable_worker_list()
-                if availiable_list:
-                    # if list is not empty, then assign task
-                    for w in availiable_list:
-                        tmptask = self.task_todo_Queue.get_nowait()
-                        try:
-                            if not self.scheduled_task_queue.has_key(w.wid):
-                                self.scheduled_task_queue[w.wid] = Queue.Queue()
-                            self.scheduled_task_queue[w.wid].put(tmptask)
-                            self.master.schedule(w.w_uuid, tmptask)
-                        except Queue.Empty:
-                            break
-                    #TODO no task assigned worker idle? or quit?
-            # monitor task complete status
-                # while True:
-            if not self.completed_Queue.empty():
-                t = self.completed_tasks.get()
-                self.appmgr.task_done(self.current_app, t.tid)
-                task_num += 1
-                # TODO logging
-                if len(self.appmgr.applist[self.current_app].task_list) == task_num:
-                    break
-
-            time.sleep(0.1)
-        self.appmgr.finilize(self.current_app.app_id)
-        # TODO logging app finial
+                time.sleep(0.1)
+            #self.appmgr.finilize(self.current_app.app_id)
+            # logging app finial
+            log.info('TaskScheduler: Application complete, ready for next applicaton')
+            self.current_app = self.appmgr.next_app()
+            # if current_app != None , rerun scheduler.
         self.processing = False

@@ -22,7 +22,7 @@ class WorkerEntry:
     """
     contain worker information and task queue
     """
-    def __int__(self, wid, w_uuid, max_capacity):
+    def __init__(self, wid, w_uuid, max_capacity):
         self.wid = wid
         self.w_uuid = w_uuid
         self.registration_time = time.time()
@@ -69,7 +69,7 @@ class WorkerEntry:
 #                time.time() - self.last_contact_time)
 
 class WorkerRegisty:
-    def __int__(self):
+    def __init__(self):
         self.__all_workers={}           # w_id:registryEntry
         self.__all_workers_uuid={}      # w_uuid:wid
         self.last_wid= 0

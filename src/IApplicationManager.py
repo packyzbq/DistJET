@@ -5,7 +5,7 @@ import Queue
 
 class IApplicationMgr:
     def __init__(self,applications):
-        self.applist = {}  #id: app
+        self.applist = {}  # id: app
         self.current_app_id = 0
         self.task_queue = Queue.Queue()
         index = 0
@@ -15,6 +15,8 @@ class IApplicationMgr:
         self.load_app_tasks(self.applist[self.current_app_id])
 
     def load_app_tasks(self, app):
+        # split app into tasks and put to the task_todo_queue
+        app.create_tasks()
         for task in app.task_list.values():
             self.task_queue.put_nowait(task)
 
@@ -24,23 +26,10 @@ class IApplicationMgr:
     def current_app(self):
         return self.current_app_id,self.applist[self.current_app_id]
 
-    def initialize(self):
-        pass
+    def next_app(self):
+        raise NotImplementedError
 
-    def finilize(self):
-        pass
-
-    def create_task(self):
-        """
-        create task list
-        :return: list of tasks
-        """""
-        pass
-
-    def task_done(self, task):
-        pass
-
-    def has_more_work(self):
+    def task_done(self, app, tid):
         raise NotImplementedError
 
 
@@ -49,5 +38,12 @@ class SimpleApplicationMgr(IApplicationMgr):
     def has_more_work(self):
         return self.task_queue.empty()
 
-    def has_more_app(self):
-        return len(self.applist) - self.current_app_id > 1
+    def next_app(self):
+        if len(self.applist) - self.current_app_id > 1:
+            self.current_app_id+=1
+            return self.applist[self.current_app_id]
+        else:
+            return None
+
+    def task_done(self, app, tid):
+        app.task_done(tid)
