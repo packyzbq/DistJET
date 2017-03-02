@@ -98,10 +98,9 @@ class WorkerAgent(BaseThread):
 
     def register(self):
         self.worker.start()
-        ret = self.client.send_string(self.uuid, len(self.uuid), 0, Tags.MPI_REGISTY)
-        if ret != 0:
-            #TODO add error handler
-            pass
+        self.client.send_string(self.uuid, len(self.uuid), 0, Tags.MPI_REGISTY)
+        send_str = self.MSG_wrapper(uuid=self.uuid,capacity=self.capacity)
+        self.client.send_string(send_str, len(send_str), 0, Tags.WORKER_INFO)
         #register to master, take down register info
         #log.info("WorkerAgent: register to master...")
         self.register_time = time.time()

@@ -159,7 +159,17 @@ class Master(IMasterController):
                     continue
 
                 if msg.tag == Tags.MPI_REGISTY:
-                    self.register(msg.ibuf)
+                    uuid = msg.sbuf
+                    while self.recv_buffer.empty():
+                        pass
+                    msg = self.recv_buffer.get()
+                    recv_dict = eval(json.loads(msg.sbuf))
+                    if msg.tag == Tags.WORKER_INFO and recv_dict['uuid'] == uuid:
+                        capacity = recv_dict['capacity']
+                        log.info('Master: Receive registry from worker=%s with capacity=%d', uuid, capacity)
+                        self.register(uuid, capacity)
+                    else:
+                        log.error('Master: Worker=%s register error when sync capacity', uuid)
 
                 # worker ask for app_ini
                 elif msg.tag == Tags.APP_INI_ASK:
@@ -170,7 +180,6 @@ class Master(IMasterController):
                     #w = self.worker_registry.get(wid)
                     #w.current_app = self.task_scheduler.appmgr.get_current_appid()
                     #self.server.send_string(send_str, len(send_str), w.w_uuid, Tags.APP_INI)
-
                 # worker finish app_ini
                 elif msg.tag == Tags.APP_INI:
                     # worker init success or fail
@@ -192,7 +201,6 @@ class Master(IMasterController):
                             w.alive_lock.release()
 
                         log.info('Master: worker:%d initial finished', recv_dict['wid'])
-
                 # worker finish task
                 elif msg.tag == Tags.TASK_FIN:
                     recv_dict = eval(json.loads(msg.sbuf))
@@ -202,7 +210,8 @@ class Master(IMasterController):
                     else:
                         self.task_scheduler.task_failed(recv_dict['tid'])
                     w = self.worker_registry.get(recv_dict['wid'])
-
+                # worker finish app
+                # worker finish app
                 elif msg.tag == Tags.APP_FIN:
                     recv_dict = eval(json.loads(msg.sbuf))
                     if self.task_scheduler.has_more_work():
@@ -220,7 +229,7 @@ class Master(IMasterController):
                         w.last_contact_time = time.time()
                     finally:
                         w.alive_lock.release()
-
+                # feedback of require for current task
                 elif msg.tag == Tags.TASK_SYNC:
                     # receive worker running task
                     recv_dict = eval(json.loads(msg.sbuf))

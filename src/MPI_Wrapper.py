@@ -11,20 +11,21 @@ class Tags:
     MPI_DISCONNECT = 13
 ###### NUM <100 for mpich ; NUM>= 100 for python
     WORKER_STOP =100
-
+    WORKER_INFO = 101   #w->m sync worker info (uuid, capacity)
 
     TASK_FIN = 110      #w->m   worker notify completed tasks,
 
     TASK_SYNC = 111     #m<->w   master ask for work info
                         # worker->master: wid,tid
-    APP_INI = 112   #m->w   master schedule app and transfer the init data  (app_ini_boot, app_ini_data, res_dir)
+    TASK_ADD = 112  # m->w   (tid, task_boot, task_data, res_dir)
+    TASK_REMOVE = 113  # m->w   remove worker task, maybe give it to another worker (tid)
+
+    APP_INI = 120   #m->w   master schedule app and transfer the init data  (app_ini_boot, app_ini_data, res_dir)
                     #w->m   init result                                     (wid, res_dir)
-    APP_INI_ASK = 113   #w->m ask for app ini boot and data
-    TASK_ADD = 114      #m->w                                                   (tid, task_boot, task_data, res_dir)
-    TASK_REMOVE = 115   #m->w   remove worker task, maybe give it to another worker (tid)
-    APP_FIN = 116       #m->w   master tell worker how to finalize
+    APP_INI_ASK = 121   #w->m ask for app ini boot and data
+    APP_FIN = 122       #m->w   master tell worker how to finalize
                         #W->M   worker ask for finalize operation
-    LOGOUT  = 120
+    LOGOUT  = 130
 
 #class Recv_handler(SM.IRecv_handler):
 #    def __init__(self):
@@ -82,7 +83,7 @@ class Client:
         self.client.send_int(int_data, msgsize, dest, tags)
 
     def send_string(self, str ,msgsize, dest, tags):
-        self.send_string(str, msgsize, dest, tags)
+        self.client.send_string(str, msgsize, dest, tags)
 
     def stop(self):
         self.client.stop()
