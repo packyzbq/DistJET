@@ -119,7 +119,7 @@ class Master(IMasterController):
 
         self.server = Server(self.recv_buffer, self.svc_name)
         self.server.initialize()
-        self.server.run()
+        #self.server.run()
         log.info('Master: start server with service_name=%s',self.svc_name)
 
         self.stop = False

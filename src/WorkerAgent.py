@@ -111,7 +111,7 @@ class WorkerAgent(BaseThread):
 
     def run(self):
         # use while to check receive buffer or Client buffer
-        self.client.run()
+        #self.client.run()
         self.register()
         # ensure the worker is registered and initialed
         while True:

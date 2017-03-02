@@ -65,8 +65,8 @@ class Client:
     """
     Set up a client(workerAgent) using C++ lib
     """
-    def __init__(self, recv_buffer, svcname, portname):
-        self.client = CM.MPI_Client(recv_buffer, svcname)
+    def __init__(self, recv_buffer, svcname, uuid):
+        self.client = CM.MPI_Client(recv_buffer, svcname, uuid)
         pass
 
     def ping(self, uuid):
