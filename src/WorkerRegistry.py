@@ -1,13 +1,13 @@
-import sys
+log = None #will be set in Master
+
 import time
-import Queue
 import threading
-import logger
+import traceback
 
 LOST_WORKER_TIMEOUT = 10 # lost worker when overhead this thrashold
 IDLE_WORKER_TIMEOUT = 100
 
-log = None  #will be set in Master
+
 
 class WorkerStatus:
     NEW = -1
@@ -96,7 +96,7 @@ class WorkerRegisty:
             return w
         except:
             # logging
-            log.error('Error occurs when adding worker')
+            log.error('[WorkerRegistry]: Error occurs when adding worker, msg=%s', traceback.format_exc())
             pass
         finally:
             self.lock.release()
@@ -117,7 +117,7 @@ class WorkerRegisty:
                     del(self.__all_workers_uuid[w_uuid])
                     del(self.__alive_workers[w_uuid])
                 except KeyError:
-                    log.warning('WorkerRegister: can not find worker when remove worker=%d, uuid=%s',wid,w_uuid)
+                    log.warning('[WorkerRegistry]: can not find worker when remove worker=%d, uuid=%s',wid,w_uuid)
         finally:
             self.lock.release()
 

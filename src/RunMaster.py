@@ -3,11 +3,15 @@ import time
 import ConfigParser
 import sys
 
+import logger
+
+control_log = logger.getLogger('ControlLog')
+log = logger.getLogger('Master')
+
 import IRecv_Module as IM
 
 import IScheduler
 import WorkerRegistry
-import logger
 from BaseThread import BaseThread
 from IApplicationManager import SimpleApplicationMgr
 from MPI_Wrapper import Server
@@ -18,8 +22,7 @@ from Policy import Policy
 WORKER_NUM = 1
 CONTROL_DELAY = 2 # the interval that controlThread scan worker registry
 
-control_log = logger.getLogger('ControlLog')
-log = logger.getLogger('Master')
+
 policy = Policy()
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
@@ -156,7 +159,7 @@ class Master(IMasterController):
         while not self.stop:
             if not self.recv_buffer.empty():
                 msg = self.recv_buffer.get()
-                print('[Python-Master]: Got a msg object')
+                print('[Python-Master]: Got a msg object, msg=%s' % msg.sbuf)
                 if msg.tag == -1:
                     continue
 
