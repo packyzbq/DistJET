@@ -112,7 +112,12 @@ class WorkerRegisty:
             else:
                 log.info('worker removed: wid=%d',wid)
                 self.__all_workers[wid].alive = False
-                self.__alive_workers.remove(wid)
+                try:
+                    del(self.__all_workers[wid])
+                    del(self.__all_workers_uuid[w_uuid])
+                    del(self.__alive_workers[w_uuid])
+                except KeyError:
+                    log.warning('WorkerRegister: can not find worker when remove worker=%d, uuid=%s',wid,w_uuid)
         finally:
             self.lock.release()
 

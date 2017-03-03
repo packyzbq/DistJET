@@ -21,6 +21,10 @@ policy = Policy()
 
 log = logger.getLogger('WorkerAgent')
 
+
+def MSG_wrapper(**kwd):
+    return json.dumps(kwd)
+
 class HeartbeatThread(BaseThread):
     """
     ping to master to update status
@@ -36,7 +40,9 @@ class HeartbeatThread(BaseThread):
             while not self.get_stop_flag():
                 if last_ping_time and (time.time()-last_ping_time) >= policy.PING_DELAY:
                     #ping server
-                    self._client.send_int(self.worker_agent.wid, 1, 0, Tags.MPI_PING)
+                    #self._client.send_int(self.worker_agent.wid, 1, 0, Tags.MPI_PING)
+                    send_str = MSG_wrapper(wid=self.worker_agent.wid)
+                    self._client.send_string(send_str,len(send_str), 0, Tags.MPI_PING)
                     self.worker_agent.log.info("HeartBeat: ping master...")
                     #self._client.ping()
                     send_str = self.worker_agent.MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
@@ -97,16 +103,17 @@ class WorkerAgent(BaseThread):
         self.finalized = False
 
     def register(self):
+        print('[Python-Worker]: start up worker')
         self.worker.start()
+        print('[Python-Worker]:Ready to send register info')
         self.client.send_string(self.uuid, len(self.uuid), 0, Tags.MPI_REGISTY)
-        send_str = self.MSG_wrapper(uuid=self.uuid,capacity=self.capacity)
+        send_str = MSG_wrapper(uuid=self.uuid,capacity=self.capacity)
         self.client.send_string(send_str, len(send_str), 0, Tags.WORKER_INFO)
         #register to master, take down register info
         #log.info("WorkerAgent: register to master...")
         self.register_time = time.time()
 
-    def MSG_wrapper(self, **kwd):
-        return json.dumps(kwd)
+
 
     def run(self):
         # use while to check receive buffer or Client buffer
@@ -134,7 +141,9 @@ class WorkerAgent(BaseThread):
                             self.heartbeat_thread.start()
                             self.register_flag = True
                             # ask for api_ini
-                            self.client.send_int(self.wid, 1, 0, Tags.APP_INI_ASK)
+                            #self.client.send_int(self.wid, 1, 0, Tags.APP_INI_ASK)
+                            send_str = MSG_wrapper(wid=self.wid)
+                            self.client.send_string(send_str,len(send_str),0,Tags.APP_INI_ASK)
                             continue
                         else:
                             # register fail
@@ -173,7 +182,7 @@ class WorkerAgent(BaseThread):
 
                 while not self.task_completed_queue.empty():
                     tmp_task= self.task_completed_queue.get()
-                    send_str = self.MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start, time_fin=tmp_task.time_finish, status=tmp_task.task_status)
+                    send_str = MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start, time_fin=tmp_task.time_finish, status=tmp_task.task_status)
                     self.client.send_string(send_str, len(send_str), 0, Tags.TASK_FIN)
             self.task_sync_lock.release()
             # handle msg from master
@@ -240,8 +249,20 @@ class WorkerAgent(BaseThread):
                 elif msg_t.tag == Tags.TASK_SYNC:
                     # return the running task
                     self.log.debug('WorkerAgent: receive TASK_SYNC message=%s', msg_t.sbuf)
-                    send_str = self.MSG_wrapper(wid=self.wid, tid=self.running_task)
+                    send_str = MSG_wrapper(wid=self.wid, tid=self.running_task)
                     self.client.send_string(send_str,len(send_str), 0,Tags.TASK_SYNC)
+
+                elif msg_t.tag == Tags.LOGOUT_ACK:
+                    assert(self.worker.status not in [WorkerStatus.COMPELETE, WorkerStatus.IDLE])
+                    # awake worker and wait for worker ending
+                    self.cond.acquire()
+                    self.cond.notify()
+                    self.cond.release()
+                    self.worker.join()
+                    # stop worker agent
+                    self.stop()
+
+
 
 
 
@@ -250,10 +271,10 @@ class WorkerAgent(BaseThread):
                 #self.worker_status = WorkerStatus.IDLE
                 while not self.task_completed_queue.empty():
                     tmp_task = self.task_completed_queue.get()
-                    send_str = self.MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start,
+                    send_str = MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start,
                                                 time_fin=tmp_task.time_finish, status=tmp_task.task_status)
                     self.client.send_string(send_str, len(send_str), 0, Tags.TASK_FIN)
-                send_str = self.MSG_wrapper(wid=self.wid, app_id = self.appid)
+                send_str = MSG_wrapper(wid=self.wid, app_id = self.appid)
                 self.client.send_string(send_str,len(send_str), 0, Tags.APP_FIN)
                 if self.worker.status == WorkerStatus.COMPELETE:
                     #notify worker and stop
@@ -273,10 +294,11 @@ class WorkerAgent(BaseThread):
         self.stop()
 
     def stop(self):
+        log.info('WorkerAgent: Agent stop...')
         BaseThread.stop()
-        self.client.stop()
         if self.heartbeat_thread:
             self.heartbeat_thread.stop()
+        self.client.stop()
         #client stop
 
     def task_done(self, task):
@@ -293,13 +315,13 @@ class WorkerAgent(BaseThread):
             task = self.task_completed_queue.get()
             if task.task_status == TaskStatus.COMPLETED:
                 self.initialized = True
-                send_str = self.MSG_wrapper(wid=self.wid, res_dir=task.res_dir)
+                send_str = MSG_wrapper(wid=self.wid, res_dir=task.res_dir)
                 self.client.send_string(send_str, len(send_str), 0, Tags.APP_INI)
             else:
                 # init error
                 log.warning('WorkerAgent: worker=%d init error', self.wid)
                 #self.worker_status = WorkerStatus.IDLE
-                send_str = self.MSG_wrapper(wid=self.wid, res_dir=task.res_dir, error='initialize error')
+                send_str = MSG_wrapper(wid=self.wid, res_dir=task.res_dir, error='initialize error')
                 self.client.send_string(send_str, len(send_str), 0, Tags.APP_INI)
         else:
             #can't find completed task error
@@ -312,8 +334,8 @@ class WorkerAgent(BaseThread):
         """
         if self.task_queue.empty() and self.task_completed_queue.qsize() > 0:
             self.task_completed_queue.get()
-
-        self.client.send_int(self.wid, 1, 0, Tags.LOGOUT)
+        send_str = MSG_wrapper(wid=self.wid)
+        self.client.send_string(send_str, len(send_str), 0, Tags.LOGOUT)
 
 
     def remove_task(self, taskid):
@@ -348,6 +370,7 @@ class Worker(BaseThread):
             self.cond.acquire()
             self.cond.wait()
             self.cond.release()
+            print('Worker: start running...')
             self.workagent.app_ini_task_lock.acquire()
             self.work_initial(self.workagent.app_ini_task)
             self.workagent.app_ini_task_lock.release()

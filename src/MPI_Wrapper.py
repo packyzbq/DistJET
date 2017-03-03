@@ -26,6 +26,7 @@ class Tags:
     APP_FIN = 122       #m->w   master tell worker how to finalize
                         #W->M   worker ask for finalize operation
     LOGOUT  = 130
+    LOGOUT_ACK = 131    #m->w ack for worker logout requirement
 
 #class Recv_handler(SM.IRecv_handler):
 #    def __init__(self):
@@ -80,6 +81,7 @@ class Client:
         self.client.run()
 
     def send_int(self, int_data, msgsize, dest, tags):
+        print('[Python-Client]: send string=%s, tag=%d' % (str, tags))
         self.client.send_int(int_data, msgsize, dest, tags)
 
     def send_string(self, str ,msgsize, dest, tags):
