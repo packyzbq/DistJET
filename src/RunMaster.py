@@ -12,6 +12,7 @@ import IRecv_Module as IM
 
 import IScheduler
 import WorkerRegistry
+WorkerRegistry.log = log
 from BaseThread import BaseThread
 from IApplicationManager import SimpleApplicationMgr
 from MPI_Wrapper import Server

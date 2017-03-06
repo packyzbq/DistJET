@@ -90,9 +90,9 @@ class WorkerRegisty:
                 w = WorkerEntry(newid ,w_uuid, max_capacity)
                 self.__all_workers[newid] = w
                 self.__all_workers_uuid[w_uuid] = newid
-                self.__alive_workers.append(w_uuid)
+                self.__alive_workers[w_uuid]=newid
                 log.info('new worker registered: wid=%d, worker_uuid=%s',newid, w_uuid)
-            self.lock.release()
+            #self.lock.release()
             return w
         except:
             # logging

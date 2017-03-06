@@ -5,6 +5,7 @@ import threading
 import time
 import ConfigParser
 import sys
+import traceback
 
 import IRecv_Module as IM
 
@@ -53,7 +54,7 @@ class HeartbeatThread(BaseThread):
                     time.sleep(1)
         except Exception:
 
-            self.worker_agent.log.error('HeartBeatThread: unkown error, thread stop')
+            self.worker_agent.log.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
 
         self.stop()
         self.worker_agent.stop()
@@ -132,8 +133,9 @@ class WorkerAgent(BaseThread):
                 # comfirm worker is registered
                 if not self.register_flag:
                     if msg_t.tag == Tags.MPI_REGISTY_ACK:
-                        self.wid = msg_t.ibuf
-                        if msg_t.ibuf > 0:
+                        recv_dict = json.loads(msg_t.sbuf)
+                        self.wid = recv_dict['wid']
+                        if self.wid > 0:
                             # register successfully
                             log.info("WorkerAgent: Register successfully, my worker_id = %d, create new log for worker", msg_t.ibuf)
                             self.log = logger.getLogger('Worker_'+str(self.wid))
