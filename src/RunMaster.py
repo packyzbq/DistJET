@@ -45,14 +45,14 @@ class ControlThread(BaseThread):
                 for wid in self.master.worker_registry:
                     w = self.master.worker_registry.get(wid)
                     try:
-                        w.alive_lock.require()
+                        w.alive_lock.acquire()
                         if w.alive and w.lost():
                             # lost worker
                             control_log.warning('lost worker: %d',wid)
                             self.master.remove_worker(wid)
                             continue
                         if w.alive:
-                            if w.processing_task:
+                            if w.worker_status==WorkerRegistry.WorkerStatus.RUNNING:
                                 w.idle_time = 0
                             else:
                                 if w.idle_time == 0:
@@ -201,7 +201,7 @@ class Master(IMasterController):
                     else:
                         w = self.worker_registry.get(recv_dict['wid'])
                         try:
-                            w.alive_lock.require()
+                            w.alive_lock.acquire()
                             w.initialized()
                         finally:
                             w.alive_lock.release()
@@ -232,7 +232,7 @@ class Master(IMasterController):
                     recv_dict = json.loads(msg.sbuf)
                     w = self.worker_registry.get(int(recv_dict['wid']))
                     try:
-                        w.alive_lock.require()
+                        w.alive_lock.acquire()
                         w.last_contact_time = time.time()
                     finally:
                         w.alive_lock.release()

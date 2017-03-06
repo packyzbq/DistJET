@@ -122,7 +122,7 @@ class WorkerRegisty:
             self.lock.release()
 
     def get(self, wid):
-        return self.__alive_workers[wid]
+        return self.__all_workers[wid]
 
     def get_by_uuid(self, w_uuid):
         return self.get(self.__all_workers_uuid[w_uuid])
