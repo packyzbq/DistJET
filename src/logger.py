@@ -10,7 +10,7 @@ def getLogger(name, level=logging.INFO):
         level = os.environ['DistJET_LOG_LEVEL']
     except:
         pass
-    format = logging.Formatter('%(asctime)s] %(threadName)s %(levelname)s: %(message)s')
+    format = logging.Formatter('[%(asctime)s] %(threadName)s %(levelname)s: %(message)s')
     handler = logging.FileHandler('DistJET.'+name+'.log')
     handler.setFormatter(format)
 

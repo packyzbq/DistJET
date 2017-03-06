@@ -11,6 +11,7 @@ class BaseThread(threading.Thread):
         if name is None:
             name = ""
         name = '.'.join(['DistJET.BaseThread',name])
+        print("[BaseThread]: create new thread : %s"%name)
         super(BaseThread, self).__init__(name=name)
         self.setDaemon(1)                               # when this father thread terminate, child thread terminate as well
         self.__should_stop_flag = False

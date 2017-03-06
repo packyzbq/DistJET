@@ -45,17 +45,17 @@ class HeartbeatThread(BaseThread):
                     #self._client.send_int(self.worker_agent.wid, 1, 0, Tags.MPI_PING)
                     send_str = MSG_wrapper(wid=self.worker_agent.wid)
                     self._client.send_string(send_str,len(send_str), 0, Tags.MPI_PING)
-                    self.worker_agent.log.info("HeartBeat: ping master...")
+                    workerlog.info("HeartBeat: ping master...")
                     #self._client.ping()
                     send_str = self.worker_agent.MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
                     self._client.send_string(send_str, len(send_str), 0, Tags.TASK_SYNC)
                     last_ping_time = time.time()
-                    self.worker_agent.log.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
+                    workerlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
                 else:
                     time.sleep(1)
         except Exception:
 
-            self.worker_agent.log.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
+            workerlog.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
 
         self.stop()
         self.worker_agent.stop()
