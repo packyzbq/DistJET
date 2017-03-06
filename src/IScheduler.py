@@ -102,7 +102,7 @@ class SimpleScheduler(IScheduler):
 
     def worker_initialize(self, w_entry):
         if self.current_app.app_init_boot:
-            send_str = MSG_wrapper(app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_boot,
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id,app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_boot,
                                res_dir=self.current_app.res_dir)
             self.master.server.send_str(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
         else:           #if no init boot, send empty string

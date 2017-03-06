@@ -202,7 +202,7 @@ class Master(IMasterController):
                         w = self.worker_registry.get(recv_dict['wid'])
                         try:
                             w.alive_lock.acquire()
-                            w.initialized()
+                            w.initial()
                         finally:
                             w.alive_lock.release()
 
@@ -224,7 +224,7 @@ class Master(IMasterController):
                         # schedule 1 more work
                         self.task_scheduler.req_more_task(int(recv_dict['wid']))
                     else:
-                        fin_boot, fin_data = self.appmgr.get_app_fin(recv_dict['wid'])
+                        fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
                         send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)
                         self.server.send_string(send_str, len(send_str),
                                                 self.worker_registry.get(recv_dict['wid']).w_uuid, Tags.APP_FIN)

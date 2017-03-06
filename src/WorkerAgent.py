@@ -21,7 +21,7 @@ from WorkerRegistry import WorkerStatus
 policy = Policy()
 
 log = logger.getLogger('WorkerAgent')
-workerlog = None
+wlog = None
 
 
 def MSG_wrapper(**kwd):
@@ -45,34 +45,34 @@ class HeartbeatThread(BaseThread):
                     #self._client.send_int(self.worker_agent.wid, 1, 0, Tags.MPI_PING)
                     send_str = MSG_wrapper(wid=self.worker_agent.wid)
                     self._client.send_string(send_str,len(send_str), 0, Tags.MPI_PING)
-                    workerlog.info("HeartBeat: ping master...")
+                    wlog.info("HeartBeat: ping master...")
                     #self._client.ping()
                     send_str = self.worker_agent.MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
                     self._client.send_string(send_str, len(send_str), 0, Tags.TASK_SYNC)
                     last_ping_time = time.time()
-                    workerlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
+                    wlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
                 else:
                     time.sleep(1)
         except Exception:
 
-            workerlog.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
+            wlog.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
 
         self.stop()
         self.worker_agent.stop()
 
-class WorkerAgent(BaseThread):
+class WorkerAgent():
     """
     agent
     """
     def __init__(self, svcname, capacity=5):
-        BaseThread.__init__(self, name='WorkerAgent')
         self.recv_buffer = IM.IRecv_buffer()
+        self.__should_stop_flag = False
         import uuid as uuid_mod
         self.uuid = str(uuid_mod.uuid4())
         self.client = Client(self.recv_buffer, svcname, self.uuid)
         self.client.initial()
         self.wid = None
-        #self.appid = None # the app that are running
+        self.appid = None # the app that are running
         self.capacity = capacity                   # can change
         self.task_queue=Queue.Queue(maxsize=self.capacity) #~need lock~ thread safe
         self.task_completed_queue = Queue.Queue()
@@ -85,7 +85,7 @@ class WorkerAgent(BaseThread):
         self.task_sync_flag = False
         self.task_sync_lock = threading.RLock()
 
-        self.heartbeat_thread=None
+        self.heartbeat_thread=HeartbeatThread(self.client, self)
         self.cond = threading.Condition()
         self.worker=Worker(self, self.cond)
         self.running_task = None
@@ -114,7 +114,8 @@ class WorkerAgent(BaseThread):
         #log.info("WorkerAgent: register to master...")
         self.register_time = time.time()
 
-
+    def get_stop_flag(self):
+        return self.__should_stop_flag
 
     def run(self):
         # use while to check receive buffer or Client buffer
@@ -138,16 +139,16 @@ class WorkerAgent(BaseThread):
                         if self.wid > 0:
                             # register successfully
                             log.info("WorkerAgent: Register successfully, my worker_id = %d, create new log for worker", self.wid)
-                            workerlog = logger.getLogger('Worker_'+str(self.wid))
-                            workerlog.info('Worker-%d: create my on log file', self.wid)
-                            self.heartbeat_thread = HeartbeatThread(self.client, self)
+                            WorkerAgent.wlog = logger.getLogger('Worker_'+str(self.wid))
+                            wlog.info('Worker-%d: create my on log file', self.wid)
+                            #self.heartbeat_thread =
                             self.heartbeat_thread.start()
                             self.register_flag = True
                             # ask for api_ini
                             #self.client.send_int(self.wid, 1, 0, Tags.APP_INI_ASK)
                             send_str = MSG_wrapper(wid=self.wid)
                             self.client.send_string(send_str,len(send_str),0,Tags.APP_INI_ASK)
-                            workerlog.info('Worker-%d: ask for APP_INI')
+                            wlog.info('Worker-%d: ask for APP_INI',self.wid)
                             continue
                         else:
                             # register fail
@@ -159,9 +160,10 @@ class WorkerAgent(BaseThread):
                 # confirm worker is initialed
                 if not self.initialized:
                     if msg_t.tag == Tags.APP_INI:
-                        task_info = eval(json.loads(msg_t.sbuf))
+                        task_info = json.loads(msg_t.sbuf)
+                        self.appid = task_info['appid']
                         #assert task_info.has_key('app_ini_boot') and task_info.has_key('app_ini_data') and task_info.has_key('res_dir')
-                        workerlog.debug("WorkerAgent: Receive API_INI msg = %s", msg_t.sbuf)
+                        wlog.debug("WorkerAgent: Receive API_INI msg = %s", msg_t.sbuf)
                         self.app_ini_task_lock.acquire()
                         self.app_ini_task = SampleTask(0, task_info['app_ini_boot'], task_info['app_ini_data'], task_info['res_dir'])
                         self.app_ini_task_lock.release()
@@ -202,14 +204,14 @@ class WorkerAgent(BaseThread):
                 # recv app_ini, do worker initialization
                 if msg_t.tag == Tags.APP_INI:
                     #TODO consider if not a complete command
-                    workerlog.debug('WorkerAgent: receive APP_INI message')
+                    wlog.debug('WorkerAgent: receive APP_INI message')
                     comm_dict = json.loads(msg_t.sbuf)
                     self.appid = comm_dict['appid']
                     self.app_ini_task_lock.acquire()
                     self.app_ini_task = SampleTask(0, comm_dict['app_init_boot'], comm_dict['app_init_data'], comm_dict['res_dir'])
                     self.app_ini_task_lock.release()
                     #wake worker up and do app initialize
-                    workerlog.debug('WorkerAgent: Initialize worker...')
+                    wlog.debug('WorkerAgent: Initialize worker...')
                     self.cond.acquire()
                     self.cond.notify()
                     self.cond.release()
@@ -217,13 +219,13 @@ class WorkerAgent(BaseThread):
                 elif msg_t.tag == Tags.TASK_ADD:
                     if self.task_queue.qsize() == self.capacity:
                         # add error handler: out of queue bound
-                        workerlog.error('error to add tasks: out of capacity')
+                        wlog.error('error to add tasks: out of capacity')
                         # TODO add some feedback to Master?
                     else:
                         comm_dict = json.loads(msg_t.sbuf)
                         task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
                         #task.task_status = TaskStatus.SCHEDULED_HALT
-                        workerlog.debug('WorkerAgent: add new task=%d into to-do queue, now have %d task to be performed',task.tid, self.task_queue.qsize())
+                        wlog.debug('WorkerAgent: add new task=%d into to-do queue, now have %d task to be performed',task.tid, self.task_queue.qsize())
                         self.task_queue.put_nowait(task.tid)
                         #self.task_list[task.tid] = task
                         if self.worker.status == WorkerStatus.IDLE:
@@ -236,7 +238,7 @@ class WorkerAgent(BaseThread):
                 elif msg_t.tag == Tags.WORKER_STOP:
                     pass
                 elif msg_t.tag == Tags.APP_FIN:
-                    workerlog.debug('WorkerAgent: receive APP_FIN message, msg= %s',msg_t.sbuf)
+                    wlog.debug('WorkerAgent: receive APP_FIN message, msg= %s',msg_t.sbuf)
                     comm_dict = json.loads(msg_t.sbuf)
                     self.app_fin_task_lock.acquire()
                     self.app_fin_task = SampleTask(0, comm_dict['app_fin_boot'], None, None)
@@ -252,7 +254,7 @@ class WorkerAgent(BaseThread):
 
                 elif msg_t.tag == Tags.TASK_SYNC:
                     # return the running task
-                    workerlog.debug('WorkerAgent: receive TASK_SYNC message=%s', msg_t.sbuf)
+                    wlog.debug('WorkerAgent: receive TASK_SYNC message=%s', msg_t.sbuf)
                     send_str = MSG_wrapper(wid=self.wid, tid=self.running_task)
                     self.client.send_string(send_str,len(send_str), 0,Tags.TASK_SYNC)
 
@@ -278,8 +280,9 @@ class WorkerAgent(BaseThread):
                     send_str = MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start,
                                                 time_fin=tmp_task.time_finish, status=tmp_task.task_status)
                     self.client.send_string(send_str, len(send_str), 0, Tags.TASK_FIN)
-                send_str = MSG_wrapper(wid=self.wid, app_id = self.appid)
-                self.client.send_string(send_str,len(send_str), 0, Tags.APP_FIN)
+                if self.worker.get_status() in [WorkerStatus.COMPELETE, WorkerStatus.IDLE]:
+                    send_str = MSG_wrapper(wid=self.wid, app_id = self.appid)
+                    self.client.send_string(send_str,len(send_str), 0, Tags.APP_FIN)
                 if self.worker.status == WorkerStatus.COMPELETE:
                     #notify worker and stop
                     self.cond.acquire()
@@ -299,7 +302,7 @@ class WorkerAgent(BaseThread):
 
     def stop(self):
         log.info('WorkerAgent: Agent stop...')
-        BaseThread.stop()
+        #BaseThread.stop()
         if self.heartbeat_thread:
             self.heartbeat_thread.stop()
         self.client.stop()
@@ -381,7 +384,7 @@ class Worker(BaseThread):
             if self.initialized == False:
                 continue
 
-        workerlog.info("Worker: Initialized... Ready to running tasks")
+        wlog.info("Worker: Initialized... Ready to running tasks")
         while not self.get_stop_flag():
             self.status = WorkerStatus.RUNNING
             while not self.workagent.task_queue.empty():
@@ -391,7 +394,7 @@ class Worker(BaseThread):
                 if not succ:
                     # change TaskStatus logging
                     task.status = TaskStatus.FAILED
-                    workerlog.error("Worker: execute task=%d error",task.tid)
+                    wlog.error("Worker: execute task=%d error",task.tid)
 
                 self.workagent.task_completed_queue.put(task)
                 self.workagent.task_sync_flag = True
@@ -437,6 +440,7 @@ class Worker(BaseThread):
 #
 
     def work_initial(self, task):
+        wlog.info('Worker start initial...')
         self.running_task = task
         #do the app init
         if not task.task_boot and not task.task_data:
@@ -498,4 +502,4 @@ if __name__ == '__main__':
 
 
     workerAgent = WorkerAgent(svc_name, capacity)
-    workerAgent.start()
+    workerAgent.run()

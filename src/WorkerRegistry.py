@@ -58,7 +58,7 @@ class WorkerEntry:
     def idle_timeout(self):
         return self.idle_time and IDLE_WORKER_TIMEOUT and time.time()-self.idle_time > IDLE_WORKER_TIMEOUT
 
-    def initialized(self):
+    def initial(self):
         self.initialized = True
         self.worker_status = WorkerStatus.INITILAZED
 
