@@ -131,10 +131,11 @@ class WorkerAgent():
                 msg_t = self.recv_buffer.get()
                 if msg_t.tag == -1:
                     continue
+                size = msg_t.size
                 # comfirm worker is registered
                 if not self.register_flag:
                     if msg_t.tag == Tags.MPI_REGISTY_ACK:
-                        recv_dict = json.loads(msg_t.sbuf)
+                        recv_dict = json.loads(msg_t.sbuf[0:size])
                         self.wid = recv_dict['wid']
                         if self.wid > 0:
                             # register successfully
@@ -160,7 +161,7 @@ class WorkerAgent():
                 # confirm worker is initialed
                 if not self.initialized:
                     if msg_t.tag == Tags.APP_INI:
-                        task_info = json.loads(msg_t.sbuf)
+                        task_info = json.loads(msg_t.sbuf[0:size])
                         self.appid = task_info['appid']
                         #assert task_info.has_key('app_ini_boot') and task_info.has_key('app_ini_data') and task_info.has_key('res_dir')
                         WorkerAgent.wlog.debug("WorkerAgent: Receive API_INI msg = %s", msg_t.sbuf)
@@ -194,7 +195,7 @@ class WorkerAgent():
             # handle msg from master
             if not self.recv_buffer.empty():
                 msg_t = self.recv_buffer.get()
-
+                size = msg_t.size
                 # recv register ack then ask for app_ini
                 """if msg_t.tag == Tags.MPI_REGISTY_ACK:
                     self.wid = msg_t.ibuf
@@ -205,7 +206,7 @@ class WorkerAgent():
                 if msg_t.tag == Tags.APP_INI:
                     #TODO consider if not a complete command
                     WorkerAgent.wlog.debug('WorkerAgent: receive APP_INI message')
-                    comm_dict = json.loads(msg_t.sbuf)
+                    comm_dict = json.loads(msg_t.sbuf[0:size])
                     self.appid = comm_dict['appid']
                     self.app_ini_task_lock.acquire()
                     self.app_ini_task = SampleTask(0, comm_dict['app_init_boot'], comm_dict['app_init_data'], comm_dict['res_dir'])
@@ -222,7 +223,7 @@ class WorkerAgent():
                         WorkerAgent.wlog.error('error to add tasks: out of capacity')
                         # TODO add some feedback to Master?
                     else:
-                        comm_dict = json.loads(msg_t.sbuf)
+                        comm_dict = json.loads(msg_t.sbuf[0:size])
                         task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
                         #task.task_status = TaskStatus.SCHEDULED_HALT
                         WorkerAgent.wlog.debug('WorkerAgent: add new task=%d into to-do queue, now have %d task to be performed',task.tid, self.task_queue.qsize())
@@ -239,7 +240,7 @@ class WorkerAgent():
                     pass
                 elif msg_t.tag == Tags.APP_FIN:
                     WorkerAgent.wlog.debug('WorkerAgent: receive APP_FIN message, msg= %s',msg_t.sbuf)
-                    comm_dict = json.loads(msg_t.sbuf)
+                    comm_dict = json.loads(msg_t.sbuf[0:size])
                     self.app_fin_task_lock.acquire()
                     self.app_fin_task = SampleTask(0, comm_dict['app_fin_boot'], None, None)
                     self.app_fin_task_lock.release()
