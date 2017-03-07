@@ -115,7 +115,7 @@ class SimpleScheduler(IScheduler):
             log.info('TaskScheduler: task=%d fail, waiting for reassign', tid)
             self.task_unschedule(task)
         else:
-            log.info('TaskScheduler: task=%d fail, ignored')
+            log.info('TaskScheduler: task=%d fail, ignored', tid)
             task.fail()
             self.completed_Queue.put_nowait(task)
 

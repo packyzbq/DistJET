@@ -2,6 +2,7 @@ import json
 import time
 import ConfigParser
 import sys
+import re
 
 import logger
 

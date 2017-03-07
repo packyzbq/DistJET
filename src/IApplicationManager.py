@@ -1,8 +1,8 @@
-import logging
+import logger
 import Application
 import Queue
 
-
+log = logger.getLogger('AppMgr')
 class IApplicationMgr:
     def __init__(self,applications):
         self.applist = {}  # id: app
@@ -19,6 +19,7 @@ class IApplicationMgr:
         app.create_tasks()
         for task in app.task_list.values():
             self.task_queue.put_nowait(task)
+            log.info('load task: id=%d, ')
 
     def get_current_appid(self):
         return self.current_app_id

@@ -71,7 +71,7 @@ class UnitTestApp(IApplication):
         execdir = os.environ['JUNOTESTROOT']
         child = subprocess.Popen([execdir+'/python/JunoTest/junotest', 'UnitTest','list'], stdout=subprocess.PIPE)
         out = child.communicate()
-        case = out[0].split('\n')[1:-1]
+        case = out.split('\n')[1:-1]
         return case
 
     def create_tasks(self):
@@ -85,7 +85,8 @@ class UnitTestApp(IApplication):
             task.initial(self.app_boot[0], data=case, res_dir=self.res_dir)
             self.task_list[self._task_index] = task
             self._task_index += 1
-
+        if self.res_dir == "":
+            self.res_dir = os.path.curdir
         with open(self.res_dir+'/summary.log','w+') as resfile:
             resfile.write('-------------------- result of TestCase --------------------\n')
 
