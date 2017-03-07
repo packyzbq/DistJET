@@ -46,6 +46,14 @@ class IScheduler(BaseThread):
         """
         raise NotImplementedError
 
+    def worker_fininalize(self, w_entry):
+        """
+        called by Master when a worker agent need finish all task and need to do finalization
+        :param w_entry:
+        :return:
+        """
+        raise NotImplementedError
+
     def worker_removed(self, w_entry):
         """
         called by Master when a worker has been removed from worker Regitry list (lost. terminated or other reason)
@@ -102,12 +110,21 @@ class SimpleScheduler(IScheduler):
 
     def worker_initialize(self, w_entry):
         if self.current_app.app_init_boot:
-            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_boot,
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_data,
                                res_dir=self.current_app.res_dir)
-            self.master.server.send_str(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
+            self.master.server.send_string(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
         else:           #if no init boot, send empty string
             send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_ini_boot="", app_ini_data="",res_dir="")
             self.master.server.send_string(send_str,len(send_str), w_entry.w_uuid, Tags.APP_INI)
+
+    def worker_fininalize(self, w_entry):
+        if self.current_app.app_fin_boot:
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_fin_boot=self.current_app.app_fin_boot, app_fin_data=self.current_app.app_fin_data,
+                               res_dir=self.current_app.res_dir)
+        else:
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_fin_boot="", app_fin_data="",res_dir="")
+        self.master.server.send_string(send_str, len(send_str), w_entry.w_uuid, Tags.APP_FIN)
+
 
     def task_failed(self,tid):
         task = self.current_app.get_task_by_id(tid)
@@ -148,7 +165,7 @@ class SimpleScheduler(IScheduler):
         while self.current_app:
             task_num = 0
             # split task
-            self.appmgr.load_app_tasks(self.current_app)
+            #TODO self.appmgr.load_app_tasks(self.current_app)
             while not self.get_stop_flag():
             #3. assign tasks
                 if self.has_more_work():

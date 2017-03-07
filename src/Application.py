@@ -18,11 +18,20 @@ class IApplication:
         self.app_init_boot=[]
         self.app_init_data=[]
 
+        self.app_fin_boot=[]
+        self.app_fin_data=[]
+
     def set_init_boot(self, init_boot):
         self.app_init_boot.append(init_boot)
 
     def set_init_data(self, init_data):
         self.app_init_data.append(init_data)
+
+    def set_fin_boot(self, fin_boot):
+        self.app_fin_boot.append(fin_boot)
+
+    def set_fin_data(self, fin_data):
+        self.app_fin_data.append(fin_data)
 
     def set_boot(self, boot_list):
         self.app_boot.append(boot_list)
@@ -31,7 +40,7 @@ class IApplication:
         self.res_dir = res_dir
 
     def set_data(self, data):
-        self.data = data
+        self.data.append(data)
 
     def set_args(self, **kwargs):
         self.args = kwargs

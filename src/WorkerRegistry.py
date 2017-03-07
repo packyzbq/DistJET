@@ -17,6 +17,7 @@ class WorkerStatus:
     ERROR = 3
     LOST = 4
     COMPELETE = 5
+    Finalizing=6
 
 class WorkerEntry:
     """

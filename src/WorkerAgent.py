@@ -242,7 +242,7 @@ class WorkerAgent():
                     WorkerAgent.wlog.debug('WorkerAgent: receive APP_FIN message, msg= %s',msg_t.sbuf)
                     comm_dict = json.loads(msg_t.sbuf[0:size])
                     self.app_fin_task_lock.acquire()
-                    self.app_fin_task = SampleTask(0, comm_dict['app_fin_boot'], None, None)
+                    self.app_fin_task = SampleTask(0, comm_dict['app_fin_boot'], comm_dict['app_fin_data'], comm_dict['res_dir'])
                     self.app_fin_task_lock.release()
                     #self.task_queue.put_nowait(task)
                     self.worker.finialize = True
@@ -303,6 +303,7 @@ class WorkerAgent():
 
     def stop(self):
         log.info('WorkerAgent: Agent stop...')
+        self.__should_stop_flag = True
         #BaseThread.stop()
         if self.heartbeat_thread:
             self.heartbeat_thread.stop()
@@ -391,6 +392,7 @@ class Worker(BaseThread):
             while not self.workagent.task_queue.empty():
                 task = self.workagent.task_queue.get()
                 self.workagent.running_task = task.tid
+                WorkerAgent.log.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot+" "+task.task_data)
                 succ = self.do_work(task)
                 if not succ:
                     # change TaskStatus logging
@@ -408,6 +410,7 @@ class Worker(BaseThread):
                 break
 
         # do finalize
+        self.status = WorkerStatus.Finalizing
         self.workagent.app_fin_task_lock.acquire()
         self.work_finalize(self.workagent.app_fin_task)
         self.workagent.app_fin_task_lock.release()

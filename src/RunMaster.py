@@ -165,17 +165,17 @@ class Master(IMasterController):
         while not self.stop:
             if not self.recv_buffer.empty():
                 msg = self.recv_buffer.get()
-                size = msg.size
                 print('[Python-Master]: Got a msg object, msg=%s' % msg.sbuf)
                 if msg.tag == -1:
                     continue
-
+                size = msg.size
+                print('[Master_receiver]: get msg=%s, size=%d' % (msg.sbuf, size))
                 if msg.tag == Tags.MPI_REGISTY:
                     uuid = msg.sbuf
                     while self.recv_buffer.empty():
                         pass
                     msg = self.recv_buffer.get()
-                    recv_dict = json.loads(msg.sbuf[0:size])
+                    recv_dict = json.loads(msg.sbuf[0:msg.size])
                     if msg.tag == Tags.WORKER_INFO and recv_dict['uuid'] == uuid:
                         capacity = recv_dict['capacity']
                         log.info('Master: Receive registry from worker=%s with capacity=%d', uuid, capacity)
@@ -231,10 +231,10 @@ class Master(IMasterController):
                         # schedule 1 more work
                         self.task_scheduler.req_more_task(recv_dict['wid'])
                     else:
-                        fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
-                        send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)
-                        self.server.send_string(send_str, len(send_str),
-                                                self.worker_registry.get(recv_dict['wid']).w_uuid, Tags.APP_FIN)
+                        #fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
+                        #send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)
+                        #self.server.send_string(send_str, len(send_str), self.worker_registry.get(recv_dict['wid']).w_uuid, Tags.APP_FIN)
+                        self.task_scheduler.worker_fininalize(self.worker_registry.get(recv_dict['wid']))
                 elif msg.tag == Tags.MPI_PING:
                     recv_dict = json.loads(msg.sbuf[0:size])
                     w = self.worker_registry.get(int(recv_dict['wid']))

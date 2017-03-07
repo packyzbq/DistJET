@@ -34,6 +34,7 @@ class IApplicationMgr:
         raise NotImplementedError
 
 
+
 class SimpleApplicationMgr(IApplicationMgr):
 
     def has_more_work(self):
