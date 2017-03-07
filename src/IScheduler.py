@@ -102,11 +102,11 @@ class SimpleScheduler(IScheduler):
 
     def worker_initialize(self, w_entry):
         if self.current_app.app_init_boot:
-            send_str = MSG_wrapper(appid = self.appmgr.current_app_id,app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_boot,
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_ini_boot=self.current_app.app_init_boot, app_ini_data=self.current_app.app_init_boot,
                                res_dir=self.current_app.res_dir)
             self.master.server.send_str(send_str, len(send_str), w_entry.w_uuid, Tags.APP_INI)
         else:           #if no init boot, send empty string
-            send_str = MSG_wrapper(app_ini_boot="", app_ini_data="",res_dir="")
+            send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_ini_boot="", app_ini_data="",res_dir="")
             self.master.server.send_string(send_str,len(send_str), w_entry.w_uuid, Tags.APP_INI)
 
     def task_failed(self,tid):
@@ -132,7 +132,7 @@ class SimpleScheduler(IScheduler):
     def req_more_task(self, wid):
         w_entry = self.master.worker_registry.get(wid)
         tmp_task = self.task_todo_Queue.get()
-        self.master.schedule(w_entry.w_uuid, tmp_task)
+        self.master.schedule(w_entry.w_uuid, [tmp_task])
 
     def run(self):
         """
@@ -162,7 +162,9 @@ class SimpleScheduler(IScheduler):
                                 if not self.scheduled_task_queue.has_key(w.wid):
                                     self.scheduled_task_queue[w.wid] = Queue.Queue()
                                 self.scheduled_task_queue[w.wid].put(tmptask)
-                                self.master.schedule(w.w_uuid, tmptask)
+                                if not self.master.schedule(w.w_uuid, [tmptask]):
+                                    log.error("TaskScheduler: schedule task=%d fail, try again", tmptask.tid)
+                                    self.task_todo_Queue.put(tmptask)
                             except Queue.Empty:
                                 break
                 # monitor task complete status
@@ -171,7 +173,7 @@ class SimpleScheduler(IScheduler):
                     t = self.completed_Queue.get()
                     self.appmgr.task_done(self.current_app, t.tid)
                     task_num += 1
-                    log.info('TaskScheduler: task=% complete...')
+                    log.info('TaskScheduler: task=%d complete...', t.tid)
                     if len(self.appmgr.applist[self.current_app].task_list) == task_num:
                         break
 

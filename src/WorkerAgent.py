@@ -74,7 +74,7 @@ class WorkerAgent():
         self.wid = None
         self.appid = None # the app that are running
         self.capacity = capacity                   # can change
-        self.task_queue=Queue.Queue(maxsize=self.capacity) #~need lock~ thread safe
+        self.task_queue=Queue.Queue(maxsize=self.capacity) #~need lock~ thread safe, element= Simple_task
         self.task_completed_queue = Queue.Queue()
 
         self.app_ini_task = None
@@ -226,7 +226,7 @@ class WorkerAgent():
                         task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
                         #task.task_status = TaskStatus.SCHEDULED_HALT
                         wlog.debug('WorkerAgent: add new task=%d into to-do queue, now have %d task to be performed',task.tid, self.task_queue.qsize())
-                        self.task_queue.put_nowait(task.tid)
+                        self.task_queue.put_nowait(task)
                         #self.task_list[task.tid] = task
                         if self.worker.status == WorkerStatus.IDLE:
                             self.cond.acquire()

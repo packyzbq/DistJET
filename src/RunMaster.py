@@ -134,10 +134,14 @@ class Master(IMasterController):
             w.worker_status = WorkerRegistry.WorkerStatus.RUNNING
             #w.scheduled_tasks.append(t.tid)
             w.assigned+=1
-            send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, res_dir=t.res_dir)
-            self.server.send_string(send_str, len(send_str), w_uuid, Tags.TASK_ADD)
             log.info('Master: assign task=%d to worker=%d', t.tid, w.wid)
-            t.details().assign(w.wid)
+            if t.details().assign(w.wid):
+                send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, res_dir=t.res_dir)
+                self.server.send_string(send_str, len(send_str), w_uuid, Tags.TASK_ADD)
+                return True
+            else:
+                log.error("Master: assign error")
+                return False
 
     def remove_worker(self, wid):
         self.task_scheduler.worker_removed(self.worker_registry.get(wid))
@@ -216,13 +220,14 @@ class Master(IMasterController):
                     else:
                         self.task_scheduler.task_failed(recv_dict['tid'])
                     w = self.worker_registry.get(recv_dict['wid'])
+                    w.assigned -= 1
                 # worker finish app
                 # worker finish app
                 elif msg.tag == Tags.APP_FIN:
                     recv_dict = json.loads(msg.sbuf)
                     if self.task_scheduler.has_more_work():
                         # schedule 1 more work
-                        self.task_scheduler.req_more_task(int(recv_dict['wid']))
+                        self.task_scheduler.req_more_task(recv_dict['wid'])
                     else:
                         fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
                         send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)

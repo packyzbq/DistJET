@@ -43,19 +43,19 @@ class Task:
 
     def complete(self, time_start, time_finish):
         self.status = TaskStatus.COMPLETED
-        self.detials().update(time_start,time_finish)
+        self.details().update(time_start,time_finish)
 
     def assign(self, wid):
         if not self.status is TaskStatus.NEW:
             try:
-                assert (self.status in [TaskStatus.FAILED, TaskStatus.LOST])
+                assert (self.status not in [TaskStatus.FAILED, TaskStatus.LOST])
             except:
                 print("@Task: task is in wrong status when assign")
             self.history.append(TaskDetail())
-        self.detials().assign(wid)
+        self.details().assign(wid)
         self.status = TaskStatus.SCHEDULED_HALT
 
-    def detials(self):
+    def details(self):
         return self.history[-1]
 
 class TaskDetail:
@@ -74,10 +74,15 @@ class TaskDetail:
         self.error = None # store error code
 
     def assign(self, wid):
-        assert(wid >0)
-        assert(self.assigned_wid == -1)
-        self.assigned_wid = wid
-        self.time_scheduled = time.time()
+        try:
+            assert(wid >0)
+            self.assigned_wid = wid
+            assert (self.assigned_wid != -1)
+            self.time_scheduled = time.time()
+            return True
+        except:
+            return False
+
 
     def update(self, time_start, time_finish):
         self.time_start = time_start
