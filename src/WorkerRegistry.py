@@ -78,6 +78,9 @@ class WorkerRegisty:
 
         self.__alive_workers = {}       # w_uuid:wid
 
+    def size(self):
+        return len(self.__all_workers)
+
     def add_worker(self, w_uuid, max_capacity):
         self.lock.acquire()
         try:

@@ -127,7 +127,7 @@ class Master(IMasterController):
         #self.server.run()
         log.info('Master: start server with service_name=%s',self.svc_name)
 
-        self.stop = False
+        self.__stop = False
 
     def schedule(self, w_uuid, tasks):
         for t in tasks:
@@ -156,13 +156,23 @@ class Master(IMasterController):
             send_str = MSG_wrapper(wid=worker.wid)
             self.server.send_string(send_str, len(send_str), w_uuid, Tags.MPI_REGISTY_ACK)
 
+    def stop(self):
+        self.task_scheduler.join()
+        self.control_thread.stop()
+        self.control_thread.join()
+        self.server.stop()
+        self.__stop = True
+
     def startProcessing(self):
         simple_appmgr = SimpleApplicationMgr(applications=self.applications)
         self.task_scheduler = IScheduler.SimpleScheduler(self, simple_appmgr)
         self.task_scheduler.start()
         self.control_thread.start()
         # handle received message
-        while not self.stop:
+        while not self.__stop:
+            if not self.task_scheduler.processing and self.worker_registry.size() == 0:
+                log.info('Master have done all applications, ready to stop')
+                self.stop()
             if not self.recv_buffer.empty():
                 msg = self.recv_buffer.get()
                 print('[Python-Master]: Got a msg object, msg=%s' % msg.sbuf)

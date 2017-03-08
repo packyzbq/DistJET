@@ -199,7 +199,7 @@ class SimpleScheduler(IScheduler):
                     self.appmgr.task_done(self.current_app, t.tid)
                     task_num += 1
                     log.info('TaskScheduler: task=%d complete...', t.tid)
-                    if len(self.appmgr.applist[self.current_app].task_list) == task_num:
+                    if len(self.current_app.task_list) == task_num:
                         break
 
                 time.sleep(0.1)
@@ -208,4 +208,5 @@ class SimpleScheduler(IScheduler):
             log.info('TaskScheduler: Application complete, ready for next applicaton')
             self.current_app = self.appmgr.next_app()
             # if current_app != None , rerun scheduler.
+        log.info('TaskScheduler: No more application, stop scheduler')
         self.processing = False

@@ -410,7 +410,7 @@ class Worker(BaseThread):
             while not self.workagent.task_queue.empty():
                 task = self.workagent.task_queue.get()
                 self.workagent.running_task = task.tid
-                WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot+" "+task.task_data)
+                #WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot+" "+task.task_data)
                 succ = self.do_work(task)
                 if not succ:
                     # change TaskStatus logging
@@ -442,6 +442,7 @@ class Worker(BaseThread):
         #task.task_status = TaskStatus.PROCESSING
         flag_str = list2string(task.task_flag)
         arg_str = dict2string(task.task_args)
+        WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot + ' ' + flag_str + ' ' + arg_str + ' ' + task.task_data)
         rc = subprocess.Popen([task.task_boot, flag_str, arg_str, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         stdout, stderr = rc.communicate()
         rc.wait()
