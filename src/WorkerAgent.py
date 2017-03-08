@@ -61,7 +61,7 @@ class HeartbeatThread(BaseThread):
                     self._client.send_string(send_str,len(send_str), 0, Tags.MPI_PING)
                     WorkerAgent.wlog.info("HeartBeat: ping master...")
                     #self._client.ping()
-                    send_str = self.worker_agent.MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
+                    send_str = MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
                     self._client.send_string(send_str, len(send_str), 0, Tags.TASK_SYNC)
                     last_ping_time = time.time()
                     WorkerAgent.wlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
@@ -116,6 +116,8 @@ class WorkerAgent():
 
         self.initialized = False
         self.finalized = False
+
+        self.send_appfin_flag = True
 
     def register(self):
         print('[Python-Worker]: start up worker')
@@ -232,6 +234,7 @@ class WorkerAgent():
                     self.cond.release()
 
                 elif msg_t.tag == Tags.TASK_ADD:
+                    self.send_appfin_flag = True
                     if self.task_queue.qsize() == self.capacity:
                         # add error handler: out of queue bound
                         WorkerAgent.wlog.error('error to add tasks: out of capacity')
@@ -274,7 +277,10 @@ class WorkerAgent():
                     self.client.send_string(send_str,len(send_str), 0,Tags.TASK_SYNC)
 
                 elif msg_t.tag == Tags.LOGOUT_ACK:
-                    assert(self.worker.status not in [WorkerStatus.COMPELETE, WorkerStatus.IDLE])
+                    try:
+                        assert(self.worker.status not in [WorkerStatus.COMPELETE, WorkerStatus.IDLE])
+                    except:
+                        WorkerAgent.wlog.error('logout error because of wrong worker status, worker status = %d', self.worker.get_status())
                     # awake worker and wait for worker ending
                     self.cond.acquire()
                     self.cond.notify()
@@ -282,9 +288,6 @@ class WorkerAgent():
                     self.worker.join()
                     # stop worker agent
                     self.stop()
-
-
-
 
 
             # ask master for app fin, master may add new tasks or give stop order
@@ -295,9 +298,10 @@ class WorkerAgent():
                     send_str = MSG_wrapper(wid=self.wid, tid=tmp_task.tid, time_start=tmp_task.time_start,
                                                 time_fin=tmp_task.time_finish, status=tmp_task.task_status)
                     self.client.send_string(send_str, len(send_str), 0, Tags.TASK_FIN)
-                if self.worker.get_status() in [WorkerStatus.COMPELETE, WorkerStatus.IDLE]:
+                if self.worker.get_status() in [WorkerStatus.COMPELETE, WorkerStatus.IDLE] and self.send_appfin_flag:
                     send_str = MSG_wrapper(wid=self.wid, app_id = self.appid)
                     self.client.send_string(send_str,len(send_str), 0, Tags.APP_FIN)
+                    self.send_appfin_flag = False
                 if self.worker.status == WorkerStatus.COMPELETE:
                     #notify worker and stop
                     self.cond.acquire()

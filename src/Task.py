@@ -36,7 +36,7 @@ class Task:
         self.res_dir = res_dir
         self.task_data = data
         self.task_args = args
-        self.task_flag.append(flag)
+        self.task_flag = flag
         self.status = TaskStatus.INITIALIZED
 
     def status(self):

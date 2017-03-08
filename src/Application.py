@@ -111,9 +111,9 @@ class UnitTestApp(IApplication):
             self.task_reslist[tid] = False
         with open(self.res_dir+'/summary.log','w+') as resfile:
             if self.task_reslist[tid]:
-                resfile.write(self.task_list[tid].data + '  SUCCESS\n')
+                resfile.write(self.task_list[tid].task_data + '  SUCCESS\n')
             else:
-                resfile.write(self.task_list[tid].data + '  ERROR\n')
+                resfile.write(self.task_list[tid].task_data + '  ERROR\n')
 
 
     def analyze_log(self, logname):
