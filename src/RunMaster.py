@@ -229,11 +229,13 @@ class Master(IMasterController):
                     recv_dict = json.loads(msg.sbuf[0:size])
                     if self.task_scheduler.has_more_work():
                         # schedule 1 more work
+                        log.info('Master: worker=%d ask for app_fin, 1 more task is assigned', recv_dict['wid'])
                         self.task_scheduler.req_more_task(recv_dict['wid'])
                     else:
                         #fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
                         #send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)
                         #self.server.send_string(send_str, len(send_str), self.worker_registry.get(recv_dict['wid']).w_uuid, Tags.APP_FIN)
+                        log.info('Master: worker=%d ask for app_fin, no more task', recv_dict['wid'])
                         self.task_scheduler.worker_fininalize(self.worker_registry.get(recv_dict['wid']))
                 elif msg.tag == Tags.MPI_PING:
                     recv_dict = json.loads(msg.sbuf[0:size])

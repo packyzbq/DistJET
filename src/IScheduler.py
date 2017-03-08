@@ -70,7 +70,7 @@ class IScheduler(BaseThread):
         """
         raise NotImplementedError
 
-    def task_completed(self, tid, time_start, time_finish):
+    def task_completed(self, wid, tid, time_start, time_finish):
         """
         this method is called when task completed ok.
         """
@@ -96,14 +96,16 @@ class SimpleScheduler(IScheduler):
         #self.completed_tasks_queue = Queue.Queue()
         self.processing = False
         self.current_app = self.appmgr.current_app()[1]
-        self.scheduled_task_queue = {}                  # record tasks matches worker
+        self.scheduled_task_queue = {}                  # record tasks matches worker 'wid':[tids]
         for t in self.current_app.task_list:
             self.task_todo_Queue.put(self.current_app.task_list[t])
 
     def worker_removed(self, w_entry):
         q = self.scheduled_task_queue[w_entry.wid]
-        while not q.empty():
-            self.task_todo_Queue.put_nowait(q.get())
+        if len(q) != 0:
+            for t in q:
+                self.task_todo_Queue.put_nowait(self.current_app.task_list[t])
+                q.remove(t)
 
     def has_more_work(self):
         return not self.task_todo_Queue.empty()
@@ -123,7 +125,9 @@ class SimpleScheduler(IScheduler):
                                res_dir=self.current_app.res_dir)
         else:
             send_str = MSG_wrapper(appid = self.appmgr.current_app_id, app_fin_boot="", app_fin_data="",res_dir="")
+        log.info("TaskScheduler: worker=%d ask for finalize, send finalize msg=%s", w_entry.wid, send_str)
         self.master.server.send_string(send_str, len(send_str), w_entry.w_uuid, Tags.APP_FIN)
+
 
 
     def task_failed(self,tid):
@@ -136,10 +140,14 @@ class SimpleScheduler(IScheduler):
             task.fail()
             self.completed_Queue.put_nowait(task)
 
-    def task_completed(self, tid, time_start, time_finish):
+    def task_completed(self, wid, tid, time_start, time_finish):
         task = self.current_app.get_task_by_id(tid)
         task.complete(time_start, time_finish)
         self.completed_Queue.put(task)
+        try:
+            self.scheduled_task_queue[wid].remove(tid)
+        except:
+            print('Scheduler: remove scheduled_task_queue error')
         log.info('TaskScheduler: task=%d complete', tid)
 
     def task_unschedule(self, tasks):
@@ -177,8 +185,8 @@ class SimpleScheduler(IScheduler):
                             tmptask = self.task_todo_Queue.get_nowait()
                             try:
                                 if not self.scheduled_task_queue.has_key(w.wid):
-                                    self.scheduled_task_queue[w.wid] = Queue.Queue()
-                                self.scheduled_task_queue[w.wid].put(tmptask)
+                                    self.scheduled_task_queue[w.wid] = []
+                                self.scheduled_task_queue[w.wid].append(tmptask.tid)
                                 if not self.master.schedule(w.w_uuid, [tmptask]):
                                     log.error("TaskScheduler: schedule task=%d fail, try again", tmptask.tid)
                                     self.task_todo_Queue.put(tmptask)

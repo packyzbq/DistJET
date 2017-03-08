@@ -443,10 +443,10 @@ class Worker(BaseThread):
         rc.wait()
         task.time_finish = time.time()
         # store output into log file
-        with open(task.res_dir+'result_'+str(task.tid), 'w+') as resfile:
+        with open(task.res_dir+'/result_'+str(task.tid), 'w+') as resfile:
             resfile.write(stdout)
         if len(stderr) != 0:
-            with open(task.res_dir+'error_'+str(task.tid), 'w+') as errfile:
+            with open(task.res_dir+'/error_'+str(task.tid), 'w+') as errfile:
                 errfile.write(stderr)
         return len(stderr) == 0
 #        if len(stderr) == 0:  # no error

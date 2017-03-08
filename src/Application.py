@@ -105,7 +105,7 @@ class UnitTestApp(IApplication):
 
     def task_done(self, tid):
         #analyze result log file according to task data
-        if self.analyze_log(self.task_list[tid].data):
+        if self.analyze_log(tid):
             self.task_reslist[tid] = True
         else:
             self.task_reslist[tid] = False
@@ -117,9 +117,13 @@ class UnitTestApp(IApplication):
 
 
     def analyze_log(self, logname):
-        with open(self.res_dir+'/'+logname) as logfile:
+        with open(self.res_dir+'/result_'+str(logname)) as logfile:
             for line in logfile:
                 if line.find('ERROR') != -1:
                     return False
                 else:
-                    return True
+                    with open(self.res_dir + '/error_' + str(logname)) as file:
+                        if len(file.read()) == 0:
+                            return True
+                        else:
+                            return False
