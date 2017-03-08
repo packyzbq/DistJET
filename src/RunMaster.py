@@ -228,9 +228,9 @@ class Master(IMasterController):
                     recv_dict = json.loads(msg.sbuf[0:size])
                     # wid, tid, time_start, time_fin, status
                     if recv_dict['status'] == TaskStatus.COMPLETED:
-                        self.task_scheduler.task_completed(recv_dict['tid'])
+                        self.task_scheduler.task_completed(recv_dict['wid'],recv_dict['tid'], recv_dict['time_start'],recv_dict['time_fin'])
                     else:
-                        self.task_scheduler.task_failed(recv_dict['tid'])
+                        self.task_scheduler.task_failed(recv_dict['wid'], recv_dict['tid'])
                     w = self.worker_registry.get(recv_dict['wid'])
                     w.assigned -= 1
                 # worker finish app
