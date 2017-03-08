@@ -137,7 +137,7 @@ class Master(IMasterController):
             w.assigned+=1
             log.info('Master: assign task=%d to worker=%d', t.tid, w.wid)
             if t.details().assign(w.wid):
-                send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, res_dir=t.res_dir)
+                send_str = MSG_wrapper(tid=t.tid, task_boot=t.task_boot, task_data=t.task_data, task_args=t.task_args, task_flag = t.task_flag, res_dir=t.res_dir)
                 self.server.send_string(send_str, len(send_str), w_uuid, Tags.TASK_ADD)
                 return True
             else:

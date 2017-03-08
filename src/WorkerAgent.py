@@ -27,6 +27,20 @@ wlog = None
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
 
+def dict2string(d):
+    s = ''
+    if d:
+        for k, v in d:
+            s= s+str(k)+' '+str(v)+' '
+    return s
+
+def list2string(l):
+    s = ''
+    if l:
+        for item in l:
+            s = s+str(item)+' '
+    return s
+
 class HeartbeatThread(BaseThread):
     """
     ping to master to update status
@@ -166,7 +180,7 @@ class WorkerAgent():
                         #assert task_info.has_key('app_ini_boot') and task_info.has_key('app_ini_data') and task_info.has_key('res_dir')
                         WorkerAgent.wlog.debug("WorkerAgent: Receive API_INI msg = %s", msg_t.sbuf)
                         self.app_ini_task_lock.acquire()
-                        self.app_ini_task = SampleTask(0, task_info['app_ini_boot'], task_info['app_ini_data'], task_info['res_dir'])
+                        self.app_ini_task = SampleTask(0, task_info['app_ini_boot'], None, None, task_info['app_ini_data'], task_info['res_dir'])
                         self.app_ini_task_lock.release()
                         #self.task_queue.put(tmp_task)
                         #wake worker
@@ -224,7 +238,7 @@ class WorkerAgent():
                         # TODO add some feedback to Master?
                     else:
                         comm_dict = json.loads(msg_t.sbuf[0:size])
-                        task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'])
+                        task = SampleTask(comm_dict['tid'], comm_dict['task_boot'], comm_dict['task_data'], comm_dict['res_dir'], flag=comm_dict['task_flag'], args=comm_dict['task_args'])
                         #task.task_status = TaskStatus.SCHEDULED_HALT
                         WorkerAgent.wlog.debug('WorkerAgent: add new task=%d into to-do queue, now have %d task to be performed',task.tid, self.task_queue.qsize())
                         self.task_queue.put_nowait(task)
@@ -392,7 +406,7 @@ class Worker(BaseThread):
             while not self.workagent.task_queue.empty():
                 task = self.workagent.task_queue.get()
                 self.workagent.running_task = task.tid
-                WorkerAgent.log.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot+" "+task.task_data)
+                WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot+" "+task.task_data)
                 succ = self.do_work(task)
                 if not succ:
                     # change TaskStatus logging
@@ -419,11 +433,12 @@ class Worker(BaseThread):
         self.cond.wait()
         self.cond.release()
 
-
     def do_task(self,task):
         task.time_start = time.time()
         #task.task_status = TaskStatus.PROCESSING
-        rc = subprocess.Popen([task.task_boot, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        flag_str = list2string(task.task_flag)
+        arg_str = dict2string(task.task_args)
+        rc = subprocess.Popen([task.task_boot, flag_str, arg_str, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         stdout, stderr = rc.communicate()
         rc.wait()
         task.time_finish = time.time()

@@ -10,6 +10,7 @@ class IApplication:
         self.res_dir = ""
         self.data = []  #store the directory of data
         self.args = {}
+        self.flag = []
         self.task_list = {}  # tid:task
         self.task_reslist = {} # tid: result of task
 
@@ -44,6 +45,9 @@ class IApplication:
 
     def set_args(self, **kwargs):
         self.args = kwargs
+
+    def set_flag(self,flags):
+        self.flag.append(flags)
 
     def get_task_by_id(self,tid):
         try:
@@ -91,7 +95,7 @@ class UnitTestApp(IApplication):
             cases = self.data
         for case in cases:
             task = Task.Task(self._task_index)
-            task.initial(self.app_boot[0], data=case, res_dir=self.res_dir)
+            task.initial(self.app_boot[0], data=case, args=self.args, flag=self.flag, res_dir=self.res_dir)
             self.task_list[self._task_index] = task
             self._task_index += 1
         if self.res_dir == "":

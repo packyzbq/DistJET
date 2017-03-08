@@ -26,13 +26,17 @@ class Task:
 
         self.task_boot = []
         self.task_data = None
+        self.task_flag = []
+        self.task_args = {}
 
         self.res_dir = None
 
-    def initial(self, work_script=None, data = None, res_dir="./"):
+    def initial(self, work_script=None, flag = [], args={}, data = None, res_dir="./"):
         self.task_boot = work_script
         self.res_dir = res_dir
         self.task_data = data
+        self.task_args = args
+        self.task_flag.append(flag)
         self.status = TaskStatus.INITIALIZED
 
     def status(self):
@@ -94,9 +98,11 @@ class SampleTask:
     """
     used for workeragent <-> worker
     """
-    def __init__(self, tid, boot, data, resdir):
+    def __init__(self, tid, boot, data, resdir, flag = None, args = None):
         self.tid = tid
-        self.task_boot=boot
-        self.task_data=data
-        self.res_dir=resdir
+        self.task_boot = boot
+        self.task_flag = flag
+        self.task_args = args
+        self.task_data = data
+        self.res_dir = resdir
         self.task_status = TaskStatus.NEW
