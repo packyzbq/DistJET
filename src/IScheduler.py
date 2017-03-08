@@ -106,6 +106,9 @@ class SimpleScheduler(IScheduler):
             for t in q:
                 self.task_todo_Queue.put_nowait(self.current_app.task_list[t])
                 q.remove(t)
+        if len(self.scheduled_task_queue[w_entry.wid]) == 0:
+            self.scheduled_task_queue.pop(w_entry.wid)
+            log.info('TaskScheduler: remove worker=%d', w_entry.wid)
 
     def has_more_work(self):
         return not self.task_todo_Queue.empty()
@@ -121,18 +124,15 @@ class SimpleScheduler(IScheduler):
 
 
     def worker_fininalize(self, w_entry):
-        if len(self.scheduled_task_queue[w_entry.wid]) == 0:
-            self.scheduled_task_queue.pop(w_entry.wid)
-            if self.current_app.app_fin_boot:
-                send_str = MSG_wrapper(appid=self.appmgr.current_app_id, app_fin_boot=self.current_app.app_fin_boot,
+        if self.current_app.app_fin_boot:
+            send_str = MSG_wrapper(appid=self.appmgr.current_app_id, app_fin_boot=self.current_app.app_fin_boot,
                                        app_fin_data=self.current_app.app_fin_data,
                                        res_dir=self.current_app.res_dir)
-            else:
-                send_str = MSG_wrapper(appid=self.appmgr.current_app_id, app_fin_boot="", app_fin_data="", res_dir="")
-            log.info("TaskScheduler: worker=%d ask for finalize, send finalize msg=%s", w_entry.wid, send_str)
-            self.master.server.send_string(send_str, len(send_str), w_entry.w_uuid, Tags.APP_FIN)
         else:
-            log.error('Taskscheduler: worker=%d still has task to do, can not finalize')
+            send_str = MSG_wrapper(appid=self.appmgr.current_app_id, app_fin_boot="", app_fin_data="", res_dir="")
+        log.info("TaskScheduler: worker=%d ask for finalize, send finalize msg=%s", w_entry.wid, send_str)
+        self.master.server.send_string(send_str, len(send_str), w_entry.w_uuid, Tags.APP_FIN)
+
 
 
 
