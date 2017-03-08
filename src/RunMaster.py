@@ -268,9 +268,12 @@ class Master(IMasterController):
                 elif msg.tag == Tags.LOGOUT:
                     recv_dict = json.loads(msg.sbuf[0:size])
                     w_uuid = self.worker_registry.get(recv_dict['wid']).w_uuid
-                    self.remove_worker(recv_dict['wid'])
                     send_str = MSG_wrapper(w='$')
                     self.server.send_string(send_str,len(send_str), w_uuid, Tags.LOGOUT_ACK)
+
+                elif msg.tag == Tags.LOGOUT_ACK:
+                    recv_dict = json.loads(msg.sbuf[0:size])
+                    self.remove_worker(recv_dict['wid'])
 
 
 

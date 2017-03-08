@@ -32,14 +32,14 @@ def dict2string(d):
     if d:
         for k, v in d:
             s= s+str(k)+' '+str(v)+' '
-    return s
+    return s[0:-1]
 
 def list2string(l):
     s = ''
     if l:
         for item in l:
             s = s+str(item)+' '
-    return s
+    return s[0:-1]
 
 class HeartbeatThread(BaseThread):
     """
@@ -287,6 +287,8 @@ class WorkerAgent():
                     self.cond.release()
                     self.worker.join()
                     # stop worker agent
+                    send_str = MSG_wrapper(wid=self.wid)
+                    self.client.send_string(send_str, len(send_str),0, Tags.LOGOUT_ACK)
                     break
 
 
