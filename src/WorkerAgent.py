@@ -287,7 +287,7 @@ class WorkerAgent():
                     self.cond.release()
                     self.worker.join()
                     # stop worker agent
-                    self.stop()
+                    break
 
 
             # ask master for app fin, master may add new tasks or give stop order
@@ -316,7 +316,7 @@ class WorkerAgent():
             time.sleep(0.1)
             #if not RT_PULL_REQUEST:
             #    time.sleep(PULL_REQUEST_DELAY)
-
+        self.worker.join()
         self.stop()
 
     def stop(self):
@@ -440,10 +440,28 @@ class Worker(BaseThread):
     def do_task(self,task):
         task.time_start = time.time()
         #task.task_status = TaskStatus.PROCESSING
-        flag_str = list2string(task.task_flag)
-        arg_str = dict2string(task.task_args)
-        WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot + ' ' + flag_str + ' ' + arg_str + ' ' + task.task_data)
-        rc = subprocess.Popen([task.task_boot, flag_str, arg_str, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        if task.task_flag and task.task_args:
+            flag_str = list2string(task.task_flag)
+            arg_str = dict2string(task.task_args)
+            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot + ' ' + flag_str + ' ' + arg_str + ' ' + task.task_data)
+            rc = subprocess.Popen([task.task_boot, flag_str, arg_str, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        elif task.task_flag and not task.task_args:
+            flag_str = list2string(task.task_flag)
+            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
+                                  task.task_boot + ' ' + flag_str + ' ' + task.task_data)
+            rc = subprocess.Popen([task.task_boot, flag_str, task.task_data], stderr=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
+        elif not task.task_flag and task.task_args:
+            arg_str = dict2string(task.task_args)
+            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
+                                  task.task_boot + ' ' + arg_str + ' ' + task.task_data)
+            rc = subprocess.Popen([task.task_boot, arg_str, task.task_data], stderr=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
+        else:
+            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
+                                  task.task_boot + ' ' + task.task_data)
+            rc = subprocess.Popen([task.task_boot, task.task_data], stderr=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
         stdout, stderr = rc.communicate()
         rc.wait()
         task.time_finish = time.time()

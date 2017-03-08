@@ -158,9 +158,12 @@ class Master(IMasterController):
 
     def stop(self):
         self.task_scheduler.join()
+        log.info('Master: TaskScheduler has joined')
         self.control_thread.stop()
         self.control_thread.join()
+        log.info('Master: Control Thread has joined')
         self.server.stop()
+        log.info('Master: Server stoped')
         self.__stop = True
 
     def startProcessing(self):
