@@ -207,8 +207,8 @@ class SimpleScheduler(IScheduler):
                     self.appmgr.task_done(self.current_app, t.tid)
                     task_num += 1
                     log.info('TaskScheduler: task=%d complete...', t.tid)
-                    if len(self.current_app.task_list) == task_num and len(self.scheduled_task_queue) == 0:
-                        break
+                if len(self.current_app.task_list) == task_num and len(self.scheduled_task_queue) == 0:
+                    break
 
                 time.sleep(0.1)
             #self.appmgr.finilize(self.current_app.app_id)

@@ -27,20 +27,6 @@ wlog = None
 def MSG_wrapper(**kwd):
     return json.dumps(kwd)
 
-def dict2string(d):
-    s = ''
-    if d:
-        for k, v in d:
-            s= s+str(k)+' '+str(v)+' '
-    return s[0:-1]
-
-def list2string(l):
-    s = ''
-    if l:
-        for item in l:
-            s = s+str(item)+' '
-    return s[0:-1]
-
 class HeartbeatThread(BaseThread):
     """
     ping to master to update status
@@ -59,12 +45,12 @@ class HeartbeatThread(BaseThread):
                     #self._client.send_int(self.worker_agent.wid, 1, 0, Tags.MPI_PING)
                     send_str = MSG_wrapper(wid=self.worker_agent.wid)
                     self._client.send_string(send_str,len(send_str), 0, Tags.MPI_PING)
-                    WorkerAgent.wlog.info("HeartBeat: ping master...")
-                    #self._client.ping()
-                    send_str = MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
-                    self._client.send_string(send_str, len(send_str), 0, Tags.TASK_SYNC)
                     last_ping_time = time.time()
-                    WorkerAgent.wlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
+                    WorkerAgent.wlog.info("HeartBeat: time=%s, ping master... with running task:%d, worker status=%d", time.strftime('%H:%M:%S', time.localtime()), self.worker_agent.running_task, self.worker_agent.worker.get_status())
+                    #self._client.ping()
+                    #send_str = MSG_wrapper(wid=self.worker_agent.wid, tid=self.worker_agent.running_task)
+                    #self._client.send_string(send_str, len(send_str), 0, Tags.TASK_SYNC)
+                    #WorkerAgent.wlog.debug('HeartBeatThread: time=%s, Ping master with running task:%d',last_ping_time,self.worker_agent.running_task)
                 else:
                     time.sleep(1)
         except Exception:
@@ -418,7 +404,7 @@ class Worker(BaseThread):
                     # change TaskStatus logging
                     task.status = TaskStatus.FAILED
                     WorkerAgent.wlog.error("Worker: execute task=%d error",task.tid)
-
+                self.workagent.running_task = -1
                 self.workagent.task_completed_queue.put(task)
                 self.workagent.task_sync_flag = True
 
@@ -441,29 +427,18 @@ class Worker(BaseThread):
 
     def do_task(self,task):
         task.time_start = time.time()
+        args_list = []
+        args_list.append(task.task_boot)
+        for i in task.task_flag:
+            args_list.append(i)
+        for k,v in task.task_args:
+            args_list.append(k)
+            args_list.append(v)
+        args_list.append(task.task_data)
+
         #task.task_status = TaskStatus.PROCESSING
-        if task.task_flag and task.task_args:
-            flag_str = list2string(task.task_flag)
-            arg_str = dict2string(task.task_args)
-            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, task.task_boot + ' ' + flag_str + ' ' + arg_str + ' ' + task.task_data)
-            rc = subprocess.Popen([task.task_boot, flag_str, arg_str, task.task_data], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        elif task.task_flag and not task.task_args:
-            flag_str = list2string(task.task_flag)
-            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
-                                  task.task_boot + ' ' + flag_str + ' ' + task.task_data)
-            rc = subprocess.Popen([task.task_boot, flag_str, task.task_data], stderr=subprocess.PIPE,
-                                  stdout=subprocess.PIPE)
-        elif not task.task_flag and task.task_args:
-            arg_str = dict2string(task.task_args)
-            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
-                                  task.task_boot + ' ' + arg_str + ' ' + task.task_data)
-            rc = subprocess.Popen([task.task_boot, arg_str, task.task_data], stderr=subprocess.PIPE,
-                                  stdout=subprocess.PIPE)
-        else:
-            WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid,
-                                  task.task_boot + ' ' + task.task_data)
-            rc = subprocess.Popen([task.task_boot, task.task_data], stderr=subprocess.PIPE,
-                                  stdout=subprocess.PIPE)
+        WorkerAgent.wlog.info('Worker: execute task=%d, command=%s', task.tid, str(args_list))
+        rc = subprocess.Popen(args_list, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         stdout, stderr = rc.communicate()
         rc.wait()
         task.time_finish = time.time()
