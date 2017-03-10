@@ -464,6 +464,7 @@ class Worker(BaseThread):
         #do the app init
         if not task.task_boot and not task.task_data:
             task.task_status = TaskStatus.COMPLETED
+            self.status = WorkerStatus.INITILAZED
             self.initialized = True
         else:
             #TODO execuate the bash/.py
@@ -471,10 +472,12 @@ class Worker(BaseThread):
                 self.initialized = True
                 self.status = WorkerStatus.INITILAZED
                 task.task_status = TaskStatus.COMPLETED
+                WorkerAgent.wlog.info('Worker: Initialization success')
             else:
                 task.task_status =TaskStatus.FAILED
                 self.status = WorkerStatus.IDLE
                 self.initialized = False
+                WorkerAgent.wlog.waring('Worker: Initialization Failed')
         self.workagent.task_completed_queue.put(task)
         self.workagent.app_ini_done()
         #sleep

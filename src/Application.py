@@ -77,19 +77,17 @@ class UnitTestApp(IApplication):
 
 
     def split_data(self):
-        if not os.environ.has_key('JUNOTESTROOT'):
+        #if not os.environ.has_key('JUNOTESTROOT'):
             #TODO logging set env
-
-            pass
-        execdir = os.environ['JUNOTESTROOT']
-        child = subprocess.Popen([execdir+'/python/JunoTest/junotest', 'UnitTest','list'], stdout=subprocess.PIPE)
-        out = child.communicate()
-        case = out.split('\n')[1:-1]
+        execdir = '/afs/ihep.ac.cn/users/z/zhaobq/workerSpace/DistJET/test'
+        child = subprocess.Popen(['./'+execdir+'/run.sh','list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr= child.communicate()
+        case = stdout.split('\n')[1:-1]
         return case
 
     def create_tasks(self):
         self._task_index = 0
-        if self.args.has_key('data') and self.args['data'] == 'all':
+        if self.args.has_key('data') or 'all' in self.data:
             cases = self.split_data()
         else:
             cases = self.data
