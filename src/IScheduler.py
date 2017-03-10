@@ -145,7 +145,10 @@ class SimpleScheduler(IScheduler):
             log.info('TaskScheduler: task=%d fail, ignored', tid)
             task.fail()
             self.completed_Queue.put_nowait(task)
-        self.scheduled_task_queue[wid].remove(tid)
+        try:
+            self.scheduled_task_queue[wid].remove(tid)
+        except:
+            log.error('TaskScheduler: @task_fail, remove task=%d from worker[%d] queue ERROR', tid,wid)
 
     def task_completed(self, wid, tid, time_start, time_finish):
         task = self.current_app.get_task_by_id(tid)
@@ -155,7 +158,7 @@ class SimpleScheduler(IScheduler):
             self.scheduled_task_queue[wid].remove(tid)
         except:
             print('Scheduler: remove scheduled_task_queue error')
-        log.info('TaskScheduler: task=%d complete, task start time=%d, task finish time=%d', tid, time_start, time_finish)
+        log.info('TaskScheduler: task=%d complete, task start time=%s, task finish time=%s', tid, time.strftime("&H:%M:%S",time.localtime(time_start)), time.strftime("&H:%M:%S",time.localtime(time_finish)))
 
     def task_unschedule(self, tasks):
         for t in tasks:
@@ -195,6 +198,7 @@ class SimpleScheduler(IScheduler):
                                 if not self.scheduled_task_queue.has_key(w.wid):
                                     self.scheduled_task_queue[w.wid] = []
                                 self.scheduled_task_queue[w.wid].append(tmptask.tid)
+                                log.info('TaskScheduler: schedule task=%d to worker=%d', tmptask.tid, w.wid)
                                 if not self.master.schedule(w.w_uuid, [tmptask]):
                                     log.error("TaskScheduler: schedule task=%d fail, try again", tmptask.tid)
                                     self.task_todo_Queue.put(tmptask)

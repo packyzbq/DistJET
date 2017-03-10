@@ -242,8 +242,9 @@ class Master(IMasterController):
                     recv_dict = json.loads(msg.sbuf[0:size])
                     if self.task_scheduler.has_more_work():
                         # schedule 1 more work
-                        log.info('Master: worker=%d ask for app_fin, 1 more task is assigned', recv_dict['wid'])
-                        self.task_scheduler.req_more_task(recv_dict['wid'])
+                        log.info('Master: worker=%d ask for app_fin, more task need to be assigned', recv_dict['wid'])
+                        # wait for scheduler assign tasks
+                        #self.task_scheduler.req_more_task(recv_dict['wid'])
                     else:
                         #fin_boot, fin_data = self.task_scheduler.appmgr.get_app_fin(recv_dict['wid'])
                         #send_str = MSG_wrapper(app_fin_boot=fin_boot, app_fin_data=fin_data)

@@ -80,9 +80,9 @@ class UnitTestApp(IApplication):
         #if not os.environ.has_key('JUNOTESTROOT'):
             #TODO logging set env
         execdir = '/afs/ihep.ac.cn/users/z/zhaobq/workerSpace/DistJET/test'
-        child = subprocess.Popen(['./'+execdir+'/run.sh','list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        child = subprocess.Popen([execdir+'/run.sh','list'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr= child.communicate()
-        case = stdout.split('\n')[1:-1]
+        case = stdout.split('\n')[2:-1]
         return case
 
     def create_tasks(self):
@@ -120,7 +120,7 @@ class UnitTestApp(IApplication):
                 if line.find('ERROR') != -1:
                     return False
                 else:
-                    with open(self.res_dir + '/error_' + str(logname)) as file:
+                    with open(self.res_dir + '/error_' + str(logname),'w+') as file:
                         if len(file.read()) == 0:
                             return True
                         else:
