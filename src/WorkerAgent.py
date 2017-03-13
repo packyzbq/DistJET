@@ -264,7 +264,7 @@ class WorkerAgent():
 
                 elif msg_t.tag == Tags.LOGOUT_ACK:
                     try:
-                        assert(self.worker.status not in [WorkerStatus.COMPELETE, WorkerStatus.IDLE])
+                        assert(self.worker.status in [WorkerStatus.COMPELETE, WorkerStatus.IDLE])
                     except:
                         WorkerAgent.wlog.error('logout error because of wrong worker status, worker status = %d', self.worker.get_status())
                     # awake worker and wait for worker ending
@@ -289,6 +289,7 @@ class WorkerAgent():
                 if self.worker.get_status() in [WorkerStatus.COMPELETE, WorkerStatus.IDLE] and self.send_appfin_flag:
                     send_str = MSG_wrapper(wid=self.wid, app_id = self.appid)
                     self.client.send_string(send_str,len(send_str), 0, Tags.APP_FIN)
+                    WorkerAgent.wlog.info('Worker: ask for APP_FIN, worker_status = %d', self.worker.get_status())
                     self.send_appfin_flag = False
                 if self.worker.status == WorkerStatus.COMPELETE:
                     #notify worker and stop
@@ -385,7 +386,7 @@ class Worker(BaseThread):
             self.cond.acquire()
             self.cond.wait()
             self.cond.release()
-            print('Worker: start running...')
+            #print('Worker: start running...')
             self.workagent.app_ini_task_lock.acquire()
             self.work_initial(self.workagent.app_ini_task)
             self.workagent.app_ini_task_lock.release()
@@ -407,7 +408,7 @@ class Worker(BaseThread):
                 self.workagent.running_task = -1
                 self.workagent.task_completed_queue.put(task)
                 self.workagent.task_sync_flag = True
-
+            WorkerAgent.wlog.info('Worker: no task to do, Idle...')
             self.status = WorkerStatus.IDLE
             self.cond.acquire()
             self.cond.wait()

@@ -19,7 +19,7 @@ class IApplicationMgr:
         app.create_tasks()
         for task in app.task_list.values():
             self.task_queue.put_nowait(task)
-            log.info('load task: id=%d', task.tid)
+            log.info('load task: id=%d, data=%s', task.tid, task.task_data)
 
     def get_current_appid(self):
         return self.current_app_id

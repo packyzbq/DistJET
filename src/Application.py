@@ -99,7 +99,7 @@ class UnitTestApp(IApplication):
         if self.res_dir == "":
             self.res_dir = os.path.curdir
         with open(self.res_dir+'/summary.log','w+') as resfile:
-            resfile.write('-------------------- result of TestCase --------------------\n')
+            resfile.writelines('-------------------- result of TestCase --------------------\n')
 
     def task_done(self, tid):
         #analyze result log file according to task data
@@ -107,11 +107,11 @@ class UnitTestApp(IApplication):
             self.task_reslist[tid] = True
         else:
             self.task_reslist[tid] = False
-        with open(self.res_dir+'/summary.log','w+') as resfile:
+        with open(self.res_dir+'/summary.log','a+') as resfile:
             if self.task_reslist[tid]:
-                resfile.write(self.task_list[tid].task_data + '  SUCCESS\n')
+                resfile.writelines(self.task_list[tid].task_data + '  SUCCESS\n')
             else:
-                resfile.write(self.task_list[tid].task_data + '  ERROR\n')
+                resfile.writelines(self.task_list[tid].task_data + '  ERROR\n')
 
 
     def analyze_log(self, logname):
@@ -120,7 +120,7 @@ class UnitTestApp(IApplication):
                 if line.find('ERROR') != -1:
                     return False
                 else:
-                    with open(self.res_dir + '/error_' + str(logname),'w+') as file:
+                    with open(self.res_dir + '/error_' + str(logname),'r+') as file:
                         if len(file.read()) == 0:
                             return True
                         else:
