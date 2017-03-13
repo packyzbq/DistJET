@@ -58,7 +58,7 @@ class HeartbeatThread(BaseThread):
             WorkerAgent.wlog.error('[HeartBeatThread]: unkown error, thread stop. msg=%s', traceback.format_exc())
 
         self.stop()
-        self.worker_agent.stop()
+        #self.worker_agent.stop()
 
 class WorkerAgent():
     """
@@ -306,14 +306,16 @@ class WorkerAgent():
             #if not RT_PULL_REQUEST:
             #    time.sleep(PULL_REQUEST_DELAY)
         self.worker.join()
+        WorkerAgent.wlog.debug('WorkerAgent: Worker has joined')
         self.stop()
 
     def stop(self):
-        log.info('WorkerAgent: Agent stop...')
+        WorkerAgent.wlog.info('WorkerAgent: Agent stop...')
         self.__should_stop_flag = True
         #BaseThread.stop()
         if self.heartbeat_thread:
             self.heartbeat_thread.stop()
+            self.heartbeat_thread.join()
         self.client.stop()
         #client stop
 
