@@ -4,13 +4,12 @@ import subprocess
 import src
 
 
-parser = OptionParser(usage="%prog [opts] [-n <worker number>] --ini <file>", description="start the whole tool with n worker on local/HTCondor")
+parser = OptionParser(usage="%prog AppFile [opts] --ini <file> ", description="start the master on local/HTCondor with config file")
 
 parser.add_option("--local", dest="local", action="store_const", const="true")
 parser.add_option("--condor", dest="condor", action="store_const", const="true")
 parser.add_option("--debug", dest="loglevel", action="store_const", const="DEBUG")
 parser.add_option("--ini", dest="script_file")
-parser.add_option("-n", dest="worker_n")
 
 (options, args) = parser.parse_args()
 
@@ -36,11 +35,7 @@ if options.local and not options.condor:
 
     # check script file
     if not options.script_file:
-        print("no app script file, stop running")
-        exit()
-
-    if options.worker_n <= 0:
-        print("worker number no less than 1")
+        print("no config script file, stop running")
         exit()
 
     # start mpd
@@ -58,17 +53,17 @@ if options.local and not options.condor:
         exit()
 
     # Analyze config script
-    script = options.script_file.split('.')[0]
-    os.system("mpiexec python master.py %s"%script)
+    config_file = options.script_file.split('.')[0]
 
-    # start master in bash script
-        #print("starting master...")
-        # start master
-        #script_file = options.script_file
-        #subprocess.Popen(["mpiexec","python","RunMaster.py", script_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # start worker
-        #print("starting worker...")
-        #subprocess.Popen(["mpiexec", "-n",str(options.worker_n),"python", "WorkerAgent.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        app_file = os.path.abspath(args[0])
+    except IndexError:
+        print('app script not specified, try --help')
+        sys.exit(1)
+    os.system("mpiexec python master.py %s %s"%(app_file, config_file))
+
+
+
 
 elif options.condor and not options.local:
     pass
