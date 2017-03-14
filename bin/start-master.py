@@ -1,5 +1,6 @@
 import os, sys
 from optparse import OptionParser
+import ConfigParser
 import subprocess
 import re
 sys.path.append("..")
@@ -9,7 +10,6 @@ if "DistJETPATH" not in os.environ:
 
 parser = OptionParser(usage="%prog AppFile [opts] --ini <file> ", description="start the master on local/HTCondor with config file")
 
-parser.add_option("--local", dest="local", action="store_const", const="true")
 parser.add_option("--condor", dest="condor", action="store_const", const="true")
 parser.add_option("--debug", dest="loglevel", action="store_const", const="DEBUG")
 parser.add_option("--ini", dest="script_file")
@@ -20,8 +20,16 @@ if options.loglevel:
     import src.logger
     src.logger.setlevel(options.loglevel)
 
+
+cf = ConfigParser.ConfigParser()
+cf.read(options.script_file)
+kvs = cf.items("global")
+
+if "node" not in kvs:
+    kvs["node"] = "local"
+
 # running locally
-if options.local and not options.condor:
+if kvs["node"] == "local":
     # check runtime env
     try:
         rc = subprocess.Popen(["mpich2version"], stdout=subprocess.PIPE)
@@ -69,7 +77,7 @@ if options.local and not options.condor:
 
 
 
-elif options.condor and not options.local:
+elif kvs["node"] == "HTCondor":
     pass
 
 else:

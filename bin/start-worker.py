@@ -2,9 +2,12 @@ import sys
 import os
 import ConfigParser
 import subprocess
-sys.path.append("..")
+
+if "DistJETPATH" not in os.environ:
+    os.environ["DistJETPATH"] = "/afs/ihep.ac.cn/users/z/zhaobq/workerSpace/DistJET/"
+
 if len(sys.argv) <=1 :
-    print("Too less parameter, exit")
+    print("@worker.py,need 2 parameter(given %d), exit" % (len(sys.argv) - 1))
     exit()
 
 w_num = 0
@@ -13,6 +16,9 @@ svc_name = None
 
 cf = ConfigParser.ConfigParser()
 kvs = cf.items("global")
+
+if "node" not in kvs:
+    kvs['node'] = "local"
 
 if "service_name" in kvs:
     svc_name = kvs["service_name"]
@@ -43,5 +49,10 @@ if 'no mpd is running' in stdout:
     print('no mpd running, exit')
     exit()
 
-# start worker
-os.system("mpiexec -n %d python worker.py %s %d"%(w_num,svc_name,w_capacity))
+if kvs['node'] == "local":
+    # start worker
+    os.system("mpiexec -n %d python worker.py %s %d"%(w_num,svc_name,w_capacity))
+
+elif kvs['node'] == "HTCondor":
+    pass
+

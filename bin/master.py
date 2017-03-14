@@ -13,7 +13,6 @@ svc_name = None
 
 cf = ConfigParser.ConfigParser()
 cf.read(sys.argv[2])
-section = cf.sections()
 
 kvs = cf.items("global")
 if "service_name" in kvs:
