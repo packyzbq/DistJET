@@ -3,8 +3,9 @@ from optparse import OptionParser
 import subprocess
 import re
 sys.path.append("..")
-import src
 
+if "DistJETPATH" not in os.environ:
+    os.environ["DistJETPATH"] = "/afs/ihep.ac.cn/users/z/zhaobq/workerSpace/DistJET/"
 
 parser = OptionParser(usage="%prog AppFile [opts] --ini <file> ", description="start the master on local/HTCondor with config file")
 
@@ -58,11 +59,12 @@ if options.local and not options.condor:
     config_file = os.path.abspath(options.script_file)
 
     try:
-        app_file = re.match(".*/\w*",os.path.abspath(args[0]))
+        app_file = (re.match(".*/\w*",os.path.abspath(args[0]))).group(0)
     except IndexError:
         print('app script not specified, try --help')
         sys.exit(1)
-    os.system("mpiexec python master.py %s %s"%(app_file, config_file))
+    print("mpiexec python $DistJET/bin/master.py %s %s" % (app_file, config_file))
+    os.system("mpiexec python $DistJETPATH/bin/master.py %s %s"%(app_file, config_file))
 
 
 
