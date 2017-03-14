@@ -1,7 +1,7 @@
 import os, sys
 from optparse import OptionParser
-import ConfigParser
 import subprocess
+import src
 
 
 parser = OptionParser(usage="%prog [opts] [-n <worker number>] --ini <file>", description="start the whole tool with n worker on local/HTCondor")
@@ -29,7 +29,8 @@ if options.local and not options.condor:
         exit()
 
     if 'Boost' not in os.environ['PATH']:
-        print("can't find Boost.Python, this may cause some problem")
+        print("can't find Boost.Python, setup Boost")
+        rc = subprocess.Popen(['source','/afs/ihep.ac.cn/users/z/zhaobq/env'])
     else:
         print('SETUP: find Boost')
 
@@ -43,20 +44,31 @@ if options.local and not options.condor:
         exit()
 
     # start mpd
-    try:
-        os.system("mpd&")
-    except:
-        print("Start mpd deamon process error, exit...")
+    # mpd start in bash script, not here; need to check mpd
+        #try:
+        #    os.system("mpd&")
+        #except:
+        #    print("Start mpd deamon process error, exit...")
+        #    exit()
+        #print("start mpd deamon process...")
+    rc = subprocess.Popen(['mpdtrace'], stdout=subprocess.PIPE)
+    stdout = rc.communicate()[0]
+    if 'no mpd is running' in stdout:
+        print('no mpd running, exit')
         exit()
-    print("start mpd deamon process...")
 
-    print("starting master...")
-    # start master
-    script_file = options.script_file
-    subprocess.Popen(["mpiexec","python","RunMaster.py", script_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # start worker
-    print("starting worker...")
-    subprocess.Popen(["mpiexec", "-n",str(options.worker_n),"python", "WorkerAgent.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Analyze config script
+    script = options.script_file.split('.')[0]
+    os.system("mpiexec python master.py %s"%script)
+
+    # start master in bash script
+        #print("starting master...")
+        # start master
+        #script_file = options.script_file
+        #subprocess.Popen(["mpiexec","python","RunMaster.py", script_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # start worker
+        #print("starting worker...")
+        #subprocess.Popen(["mpiexec", "-n",str(options.worker_n),"python", "WorkerAgent.py"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 elif options.condor and not options.local:
     pass
