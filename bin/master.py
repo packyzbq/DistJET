@@ -1,8 +1,8 @@
 from sys import argv
 import ConfigParser
 # argv[1] = app file ; argv[2] = config file
-if len(argv) <= 2:
-    print("Too less parameter, exit")
+if len(argv) != 3:
+    print("@master.py,need 2 parameter(given %d), exit"%(len(argv)-1))
     exit()
 
 svc_name = None

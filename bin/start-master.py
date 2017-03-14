@@ -1,6 +1,8 @@
 import os, sys
 from optparse import OptionParser
 import subprocess
+import re
+sys.path.append("..")
 import src
 
 
@@ -53,10 +55,10 @@ if options.local and not options.condor:
         exit()
 
     # Analyze config script
-    config_file = options.script_file.split('.')[0]
+    config_file = os.path.abspath(options.script_file)
 
     try:
-        app_file = os.path.abspath(args[0])
+        app_file = re.match(".*/\w*",os.path.abspath(args[0]))
     except IndexError:
         print('app script not specified, try --help')
         sys.exit(1)

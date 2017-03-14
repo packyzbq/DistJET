@@ -1,9 +1,9 @@
-from sys import argv
+import sys
 import os
 import ConfigParser
 import subprocess
-
-if len(argv) <=1 :
+sys.path.append("..")
+if len(sys.argv) <=1 :
     print("Too less parameter, exit")
     exit()
 
