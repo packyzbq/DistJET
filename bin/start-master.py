@@ -23,13 +23,13 @@ if options.loglevel:
 
 cf = ConfigParser.ConfigParser()
 cf.read(options.script_file)
-kvs = cf.items("global")
+kvs = dict(cf.items("global"))
 
-if "node" not in kvs:
-    kvs["node"] = "local"
+if 'node' not in kvs:
+    kvs['node'] = 'local'
 
 # running locally
-if kvs["node"] == "local":
+if kvs['node'] == 'local':
     # check runtime env
     try:
         rc = subprocess.Popen(["mpich2version"], stdout=subprocess.PIPE)
@@ -77,8 +77,8 @@ if kvs["node"] == "local":
 
 
 
-elif kvs["node"] == "HTCondor":
+elif kvs['node'] == 'HTCondor':
     pass
 
 else:
-    print("you can't run both on local and condor")
+    print("Can not recognize the node=%s"%kvs['node'])

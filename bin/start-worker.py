@@ -7,7 +7,7 @@ if "DistJETPATH" not in os.environ:
     os.environ["DistJETPATH"] = "/afs/ihep.ac.cn/users/z/zhaobq/workerSpace/DistJET/"
 
 if len(sys.argv) <=1 :
-    print("@worker.py,need 2 parameter(given %d), exit" % (len(sys.argv) - 1))
+    print("@worker.py,need 1 parameter(given %d), exit" % (len(sys.argv) - 1))
     exit()
 
 w_num = 0
@@ -15,7 +15,8 @@ w_capacity = 1
 svc_name = None
 
 cf = ConfigParser.ConfigParser()
-kvs = cf.items("global")
+cf.read(sys.argv[1])
+kvs = dict(cf.items("global"))
 
 if "node" not in kvs:
     kvs['node'] = "local"

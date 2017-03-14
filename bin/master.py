@@ -14,7 +14,7 @@ svc_name = None
 cf = ConfigParser.ConfigParser()
 cf.read(sys.argv[2])
 
-kvs = cf.items("global")
+kvs = dict(cf.items("global"))
 if "service_name" in kvs:
     svc_name = kvs["service_name"]
 
